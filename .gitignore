@@ -1,0 +1,33 @@
+# Build results
+bin/
+obj/
+**/bin/
+**/obj/
+/out/
+
+# VS & tooling
+.vs/
+*.user
+*.suo
+
+# Testing & coverage
+TestResults/
+*.trx
+coverage/
+
+# Logs & temp
+*.log
+*.temp
+*.tmp
+.DS_Store
+
+# Rider / JetBrains
+.idea/
+
+# SQL tooling artifacts
+*.dacpac
+*.bacpac
+
+# Local secrets
+*.usersecrets/
+.env
