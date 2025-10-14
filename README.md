@@ -1,10 +1,10 @@
 # ShipManagement Backend Challenge
 
-Backend API for managing ships, crew, users, and financial records. The solution is built with ASP.NET Core 9 and organised as a single Web API project plus acceptance-style test projects.
+Backend API for managing ships, crew, users, and financial records. The solution is built with .NET and organised as a single Web API project plus acceptance-style test projects.
 
 ## Contents
 
-- `ShipManagement/src/ShipManagement.API` – main ASP.NET Core API
+- `ShipManagement/src/ShipManagement.API` – main .NET API
 - `ShipManagement/tests/ShipManagement.Tests` – BDD-style SpecFlow tests
 - `Database/*.sql` – schema, stored procedures, and sample data scripts
 - `Makefile` – build, run, database automation, and cert helpers
@@ -12,7 +12,7 @@ Backend API for managing ships, crew, users, and financial records. The solution
 
 ## Prerequisites
 
-- .NET 9 SDK
+- .NET SDK
 - SQL Server instance accessible at `localhost`
   - Update `ShipManagement/src/ShipManagement.API/appsettings.json` if using a different host or credentials.
   - SA password currently defaults to `Strong@6321`.

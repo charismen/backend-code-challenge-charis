@@ -39,7 +39,7 @@ help:
 	@printf "  run         Run the ShipManagement.API launch profile\n"
 	@printf "  watch       Run the API with dotnet watch (hot reload)\n"
 	@printf "  debug       Build and emit debugging guidance\n"
-	@printf "  cert        Trust the ASP.NET Core development certificate\n"
+	@printf "  cert        Trust the .NET development certificate\n"
 	@printf "  db-drop     Drop the ShipManagement database (if it exists)\n"
 	@printf "  db-schema   Create or update the database schema\n"
 	@printf "  db-sp       Create or replace stored procedures\n"
