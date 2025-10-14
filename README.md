@@ -8,14 +8,14 @@ Backend API for managing ships, crew, users, and financial records. The solution
 - `ShipManagement/tests/ShipManagement.Tests` – BDD-style SpecFlow tests
 - `Database/*.sql` – schema, stored procedures, and sample data scripts
 - `Makefile` – build, run, database automation, and cert helpers
-- `.vscode/launch.json` & `Properties/launchSettings.json` – VS Code debugging profiles
+- `Properties/launchSettings.json` – VS Code debugging profiles
 
 ## Prerequisites
 
 - .NET SDK
 - SQL Server instance accessible at `localhost`
   - Update `ShipManagement/src/ShipManagement.API/appsettings.json` if using a different host or credentials.
-  - SA password currently defaults to `Strong@6321`.
+  - SA password currently defaults to `StrongPassword@123`.
 - `sqlcmd` CLI (cross-platform) for running database scripts through `make`.
 - Optional: VS Code with C# extension for integrated debugging.
 
@@ -61,7 +61,7 @@ The `Makefile` wraps common `sqlcmd` invocations:
 Environment variables you can override when calling `make`:
 
 ```bash
-SQL_SERVER=localhost SQL_USERNAME=SA SQL_PASSWORD="Strong@6321" make db-setup
+SQL_SERVER=localhost SQL_USERNAME=SA SQL_PASSWORD="StrongPassword@123" make db-setup
 ```
 
 Setting `SQL_TRUST_CERT=false` will omit the `-C` flag when connecting to SQL Server with TLS.
@@ -95,7 +95,7 @@ Tests are SpecFlow-based feature files grouped by concern (`Crew`, `Financial`, 
 ## Additional Files & Tooling
 
 - `Makefile` – automates build/test/run/db tasks documented above.
-- `.vscode/launch.json` – F5 profile for VS Code using the compiled DLL.
+- `.gitignore` – excludes build outputs, tooling caches, and local env files from version control.
 - `ShipManagement/src/ShipManagement.API/Properties/launchSettings.json` – dotnet CLI profiles (development & integration).
 - No Dockerfile or CI pipeline are provided; integration points are ready for future extension if desired.
 
