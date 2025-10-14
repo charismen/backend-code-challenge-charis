@@ -6,21 +6,17 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0"/>
-    <PackageReference Include="SpecFlow" Version="3.9.74"/>
-    <PackageReference Include="SpecFlow.NUnit" Version="3.9.74"/>
-    <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+    <PackageReference Include="xunit" Version="2.7.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.8">
       <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NUnit" Version="4.4.0"/>
-    <PackageReference Include="NUnit.Analyzers" Version="4.10.0"/>
-    <PackageReference Include="NUnit3TestAdapter" Version="5.2.0"/>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="NSubstitute" Version="5.3.0"/>
-  </ItemGroup>
-  <ItemGroup>
-    <SpecFlowFeature Include="Crew\CrewManagement.feature" />
-    <SpecFlowFeature Include="Financial\FinancialReporting.feature" />
-    <SpecFlowFeature Include="Ships\ShipManagement.feature" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ShipManagement.API\ShipManagement.API.csproj"/>

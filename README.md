@@ -5,7 +5,7 @@ Backend API for managing ships, crew, users, and financial records. The solution
 ## Contents
 
 - `ShipManagement/src/ShipManagement.API` – main .NET API
-- `ShipManagement/tests/ShipManagement.Tests` – BDD-style SpecFlow tests
+- `ShipManagement/tests/ShipManagement.Tests` – xUnit tests
 - `Database/*.sql` – schema, stored procedures, and sample data scripts
 - `Makefile` – build, run, database automation, and cert helpers
 - `Properties/launchSettings.json` – VS Code debugging profiles
@@ -15,7 +15,7 @@ Backend API for managing ships, crew, users, and financial records. The solution
 - .NET SDK
 - SQL Server instance accessible at `localhost`
   - Update `ShipManagement/src/ShipManagement.API/appsettings.json` if using a different host or credentials.
-  - SA password currently defaults to `StrongPassword@123`.
+- SA password currently defaults to `StrongPassword@123`.
 - `sqlcmd` CLI (cross-platform) for running database scripts through `make`.
 - Optional: VS Code with C# extension for integrated debugging.
 
@@ -82,7 +82,7 @@ make test
 dotnet test ShipManagement/tests/ShipManagement.Tests/ShipManagement.Tests.csproj
 ```
 
-Tests are SpecFlow-based feature files grouped by concern (`Crew`, `Financial`, `Ships`). They exercise service endpoints via scenario definitions and generated step bindings.
+Tests use xUnit against the controller layer (`ShipManagement.Tests/Controllers`). Each suite mocks dependencies with NSubstitute to verify success, validation, and error paths without requiring HTTP hosting.
 
 ## Design Notes
 
@@ -90,6 +90,7 @@ Tests are SpecFlow-based feature files grouped by concern (`Crew`, `Financial`, 
 - **Database Access** – Uses a custom `SqlConnectionFactory` alongside Dapper for lightweight data mapping while leveraging stored procedures for complex queries.
 - **Environment-specific configuration** – `appsettings.Development.json` configures Kestrel endpoints to avoid HTTPS redirection warnings; `launchSettings.json` aligns with the same URLs to keep tooling consistent.
 - **Developer Experience** – `Makefile` provides a single entry point for restoring, building, testing, running, and provisioning the database; VS Code settings simplify local debugging without modifying source controllers.
+- **Testing Approach** – Controller-focused xUnit tests offering faster feedback while still validating happy-path, validation, and failure branches.
 - **Swagger Exposure** – Root URL redirect implemented as middleware to keep Swagger discoverable, while keeping the generated doc free of extra endpoints.
 
 ## Additional Files & Tooling
