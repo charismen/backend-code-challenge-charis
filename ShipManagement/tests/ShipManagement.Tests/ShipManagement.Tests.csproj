@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0"/>
+    <PackageReference Include="SpecFlow" Version="3.9.74"/>
+    <PackageReference Include="SpecFlow.NUnit" Version="3.9.74"/>
+    <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit" Version="4.4.0"/>
+    <PackageReference Include="NUnit.Analyzers" Version="4.10.0"/>
+    <PackageReference Include="NUnit3TestAdapter" Version="5.2.0"/>
+    <PackageReference Include="NSubstitute" Version="5.3.0"/>
+  </ItemGroup>
+  <ItemGroup>
+    <SpecFlowFeature Include="Crew\CrewManagement.feature" />
+    <SpecFlowFeature Include="Financial\FinancialReporting.feature" />
+    <SpecFlowFeature Include="Ships\ShipManagement.feature" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ShipManagement.API\ShipManagement.API.csproj"/>
+  </ItemGroup>
+</Project>
