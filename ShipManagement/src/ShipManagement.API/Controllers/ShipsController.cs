@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 using ShipManagement.API.Services;
 
@@ -51,15 +52,18 @@ namespace ShipManagement.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<int>> CreateShip(Ship ship)
+        public async Task<ActionResult<Ship>> CreateShip(Ship ship)
         {
             try
             {
-                if (string.IsNullOrEmpty(ship.Code) || string.IsNullOrEmpty(ship.Name))
-                    return BadRequest("Ship code and name are required");
+                if (string.IsNullOrWhiteSpace(ship.Code) || string.IsNullOrWhiteSpace(ship.Name) ||
+                    string.IsNullOrWhiteSpace(ship.FiscalYear) || string.IsNullOrWhiteSpace(ship.Status))
+                {
+                    return BadRequest("Ship code, name, fiscal year, and status are required");
+                }
 
-                var id = await _shipService.CreateShipAsync(ship);
-                return CreatedAtAction(nameof(GetShipByCode), new { code = ship.Code }, id);
+                var created = await _shipService.CreateShipAsync(ship);
+                return CreatedAtAction(nameof(GetShipByCode), new { code = created.Code }, created);
             }
             catch (Exception ex)
             {
@@ -68,41 +72,51 @@ namespace ShipManagement.API.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateShip(int id, Ship ship)
+        [HttpPut("{code}")]
+        public async Task<IActionResult> UpdateShip(string code, Ship ship)
         {
             try
             {
-                if (id != ship.Id)
-                    return BadRequest("Ship ID mismatch");
+                if (!string.Equals(code, ship.Code, StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("Ship code mismatch");
 
-                var success = await _shipService.UpdateShipAsync(ship);
-                if (!success)
-                    return NotFound($"Ship with ID {id} not found");
+                var updated = await _shipService.UpdateShipAsync(ship);
+                if (updated is null)
+                    return NotFound($"Ship with code {code} not found");
 
                 return NoContent();
             }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "Ship with code {Code} not found during update", code);
+                return NotFound(nf.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating ship with ID {Id}", id);
+                _logger.LogError(ex, "Error updating ship with code {Code}", code);
                 return StatusCode(500, "An error occurred while updating the ship");
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteShip(int id)
+        [HttpDelete("{code}")]
+        public async Task<IActionResult> DeleteShip(string code)
         {
             try
             {
-                var success = await _shipService.DeleteShipAsync(id);
+                var success = await _shipService.DeleteShipAsync(code);
                 if (!success)
-                    return NotFound($"Ship with ID {id} not found");
+                    return NotFound($"Ship with code {code} not found");
 
                 return NoContent();
             }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "Ship with code {Code} not found during delete", code);
+                return NotFound(nf.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting ship with ID {Id}", id);
+                _logger.LogError(ex, "Error deleting ship with code {Code}", code);
                 return StatusCode(500, "An error occurred while deleting the ship");
             }
         }

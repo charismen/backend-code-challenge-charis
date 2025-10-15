@@ -19,17 +19,17 @@ namespace ShipManagement.API.Services
             using var connection = _connectionFactory.CreateConnection();
             
             var parameters = new DynamicParameters();
-            parameters.Add("@ShipId", request.ShipId);
+            parameters.Add("@ShipCode", request.ShipCode);
+            parameters.Add("@SearchTerm", request.SearchTerm);
+            parameters.Add("@SortColumn", string.IsNullOrWhiteSpace(request.SortColumn) ? "RankName" : request.SortColumn);
+            parameters.Add("@SortDirection", request.SortDescending ? "DESC" : "ASC");
             parameters.Add("@PageNumber", request.PageNumber);
             parameters.Add("@PageSize", request.PageSize);
-            parameters.Add("@SortBy", request.SortBy);
-            parameters.Add("@SortDescending", request.SortDescending);
             parameters.Add("@StatusFilter", request.StatusFilter);
-            parameters.Add("@NameFilter", request.NameFilter);
             parameters.Add("@TotalCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
             var crewMembers = await connection.QueryAsync<CrewMember>(
-                "EXEC GetCrewList @ShipId, @PageNumber, @PageSize, @SortBy, @SortDescending, @StatusFilter, @NameFilter, @TotalCount OUTPUT",
+                "EXEC GetCrewList @ShipCode, @SearchTerm, @SortColumn, @SortDirection, @PageNumber, @PageSize, @StatusFilter, @TotalCount OUTPUT",
                 parameters);
 
             var totalCount = parameters.Get<int>("@TotalCount");

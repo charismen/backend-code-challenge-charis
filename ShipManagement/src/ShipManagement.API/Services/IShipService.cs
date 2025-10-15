@@ -6,8 +6,8 @@ namespace ShipManagement.API.Services
     {
         Task<IEnumerable<Ship>> GetAllShipsAsync();
         Task<Ship?> GetShipByCodeAsync(string code);
-        Task<int> CreateShipAsync(Ship ship);
-        Task<bool> UpdateShipAsync(Ship ship);
-        Task<bool> DeleteShipAsync(int id);
+        Task<Ship> CreateShipAsync(Ship ship);
+        Task<Ship?> UpdateShipAsync(Ship ship);
+        Task<bool> DeleteShipAsync(string code);
     }
 }

@@ -18,13 +18,13 @@ public class CrewControllerTests
         var service = Substitute.For<ICrewService>();
         var logger = Substitute.For<ILogger<CrewController>>();
         var controller = new CrewController(service, logger);
-        var request = new CrewListRequest { ShipId = 1, PageNumber = 1, PageSize = 10 };
+        var request = new CrewListRequest { ShipCode = "SHIP01", PageNumber = 1, PageSize = 10 };
         var expected = new PagedResult<CrewMember>
         {
             Items = new[]
             {
-                new CrewMember { Id = 1, ShipId = 1, FirstName = "John", LastName = "Doe" },
-                new CrewMember { Id = 2, ShipId = 1, FirstName = "Jane", LastName = "Smith" }
+                new CrewMember { CrewMemberId = "CREW001", ShipCode = "SHIP01", FirstName = "John", LastName = "Doe" },
+                new CrewMember { CrewMemberId = "CREW002", ShipCode = "SHIP01", FirstName = "Jane", LastName = "Smith" }
             },
             TotalCount = 2,
             PageNumber = 1,
@@ -44,12 +44,12 @@ public class CrewControllerTests
     }
 
     [Fact]
-    public async Task GetCrewList_ReturnsBadRequest_WhenShipIdInvalid()
+    public async Task GetCrewList_ReturnsBadRequest_WhenShipCodeMissing()
     {
         var service = Substitute.For<ICrewService>();
         var logger = Substitute.For<ILogger<CrewController>>();
         var controller = new CrewController(service, logger);
-        var request = new CrewListRequest { ShipId = 0, PageNumber = 1, PageSize = 10 };
+        var request = new CrewListRequest { ShipCode = string.Empty, PageNumber = 1, PageSize = 10 };
 
         var response = await controller.GetCrewList(request);
 
@@ -63,7 +63,7 @@ public class CrewControllerTests
         var service = Substitute.For<ICrewService>();
         var logger = Substitute.For<ILogger<CrewController>>();
         var controller = new CrewController(service, logger);
-        var request = new CrewListRequest { ShipId = 1, PageNumber = 1, PageSize = 10 };
+        var request = new CrewListRequest { ShipCode = "SHIP01", PageNumber = 1, PageSize = 10 };
 
         service.GetCrewListAsync(Arg.Any<CrewListRequest>())
             .ThrowsAsync(new InvalidOperationException("Crew service failure"));

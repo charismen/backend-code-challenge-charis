@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using ShipManagement.API.Controllers;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 using ShipManagement.API.Services;
 using Xunit;
@@ -23,8 +24,8 @@ public class ShipsControllerTests
         var controller = new ShipsController(service, logger);
         var ships = new List<Ship>
         {
-            new() { Id = 1, Code = "SHIP1", Name = "Ship 1", YearBuilt = 2020 },
-            new() { Id = 2, Code = "SHIP2", Name = "Ship 2", YearBuilt = 2021 }
+            new() { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" },
+            new() { Code = "SHIP2", Name = "Ship 2", FiscalYear = "0212", Status = "Inactive" }
         }.AsEnumerable();
 
         service.GetAllShipsAsync().Returns(Task.FromResult(ships));
@@ -57,7 +58,7 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Id = 1, Code = "SHIP1", Name = "Ship 1", YearBuilt = 2020 };
+        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" };
 
         service.GetShipByCodeAsync("SHIP1").Returns(Task.FromResult<Ship?>(ship));
 
@@ -103,15 +104,16 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = "SHIP3", Name = "Ship 3", YearBuilt = 2022 };
+        var ship = new Ship { Code = "SHIP3", Name = "Ship 3", FiscalYear = "0112", Status = "Active" };
+        var created = new Ship { Code = "SHIP3", Name = "Ship 3", FiscalYear = "0112", Status = "Active" };
 
-        service.CreateShipAsync(ship).Returns(Task.FromResult(3));
+        service.CreateShipAsync(ship).Returns(Task.FromResult(created));
 
         var response = await controller.CreateShip(ship);
 
         var createdResult = Assert.IsType<CreatedAtActionResult>(response.Result);
-        var payload = Assert.IsType<int>(createdResult.Value);
-        Assert.Equal(3, payload);
+        var payload = Assert.IsType<Ship>(createdResult.Value);
+        Assert.Equal(created.Code, payload.Code);
         Assert.Equal(nameof(ShipsController.GetShipByCode), createdResult.ActionName);
     }
 
@@ -121,7 +123,7 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = string.Empty, Name = string.Empty, YearBuilt = 2022 };
+        var ship = new Ship { Code = string.Empty, Name = string.Empty, FiscalYear = string.Empty, Status = string.Empty };
 
         var response = await controller.CreateShip(ship);
 
@@ -135,7 +137,7 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = "SHIP4", Name = "Ship 4", YearBuilt = 2022 };
+        var ship = new Ship { Code = "SHIP4", Name = "Ship 4", FiscalYear = "0112", Status = "Active" };
 
         service.CreateShipAsync(Arg.Any<Ship>()).ThrowsAsync(new InvalidOperationException("failure"));
 
@@ -143,5 +145,52 @@ public class ShipsControllerTests
 
         var objectResult = Assert.IsType<ObjectResult>(response.Result);
         Assert.Equal(500, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateShip_ReturnsNotFound_WhenServiceSignalsMissing()
+    {
+        var service = Substitute.For<IShipService>();
+        var logger = Substitute.For<ILogger<ShipsController>>();
+        var controller = new ShipsController(service, logger);
+        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" };
+
+        service.UpdateShipAsync(ship).Returns(Task.FromResult<Ship?>(null));
+
+        var response = await controller.UpdateShip("SHIP1", ship);
+
+        Assert.IsType<NotFoundObjectResult>(response);
+    }
+
+    [Fact]
+    public async Task UpdateShip_ReturnsNotFound_WhenServiceThrowsNotFound()
+    {
+        var service = Substitute.For<IShipService>();
+        var logger = Substitute.For<ILogger<ShipsController>>();
+        var controller = new ShipsController(service, logger);
+        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" };
+
+        service.UpdateShipAsync(Arg.Any<Ship>())
+            .ThrowsAsync(new NotFoundException("Ship with code SHIP1 not found"));
+
+        var response = await controller.UpdateShip("SHIP1", ship);
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(response);
+        Assert.Equal("Ship with code SHIP1 not found", notFound.Value);
+    }
+
+    [Fact]
+    public async Task DeleteShip_ReturnsNotFound_WhenServiceThrowsNotFound()
+    {
+        var service = Substitute.For<IShipService>();
+        var logger = Substitute.For<ILogger<ShipsController>>();
+        var controller = new ShipsController(service, logger);
+
+        service.DeleteShipAsync("SHIP1").ThrowsAsync(new NotFoundException("Ship with code SHIP1 not found"));
+
+        var response = await controller.DeleteShip("SHIP1");
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(response);
+        Assert.Equal("Ship with code SHIP1 not found", notFound.Value);
     }
 }

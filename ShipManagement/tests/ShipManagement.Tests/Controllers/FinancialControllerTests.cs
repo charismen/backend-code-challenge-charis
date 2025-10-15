@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using ShipManagement.API.Controllers;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 using ShipManagement.API.Services;
 using Xunit;
@@ -21,16 +22,16 @@ public class FinancialControllerTests
         var service = Substitute.For<IFinancialService>();
         var logger = Substitute.For<ILogger<FinancialController>>();
         var controller = new FinancialController(service, logger);
-        var request = new FinancialReportRequest { ShipId = 1, Year = 2023, Month = 6 };
+        var request = new FinancialReportRequest { ShipCode = "SHIP01", Year = 2023, Month = 6 };
         var items = new List<FinancialReportItem>
         {
             new()
             {
-                AccountId = 1,
-                AccountCode = "A001",
-                AccountName = "Fuel",
-                ActualAmount = 5000,
-                BudgetAmount = 4500
+                AccountDescription = "Fuel",
+                AccountNumber = "A001",
+                ActualValue = 5000,
+                BudgetValue = 4500,
+                VarianceActual = 500
             }
         }.AsEnumerable();
 
@@ -41,7 +42,7 @@ public class FinancialControllerTests
         var okResult = Assert.IsType<OkObjectResult>(response.Result);
         var payload = Assert.IsAssignableFrom<IEnumerable<FinancialReportItem>>(okResult.Value);
         Assert.Single(payload);
-        Assert.Equal(1, payload.First().AccountId);
+        Assert.Equal("A001", payload.First().AccountNumber);
     }
 
     [Fact]
@@ -50,7 +51,7 @@ public class FinancialControllerTests
         var service = Substitute.For<IFinancialService>();
         var logger = Substitute.For<ILogger<FinancialController>>();
         var controller = new FinancialController(service, logger);
-        var request = new FinancialReportRequest { ShipId = 0, Year = 2023, Month = 13 };
+        var request = new FinancialReportRequest { ShipCode = string.Empty, Year = 2023, Month = 13 };
 
         var response = await controller.GetFinancialReportDetail(request);
 
@@ -64,7 +65,7 @@ public class FinancialControllerTests
         var service = Substitute.For<IFinancialService>();
         var logger = Substitute.For<ILogger<FinancialController>>();
         var controller = new FinancialController(service, logger);
-        var request = new FinancialReportRequest { ShipId = 1, Year = 2023, Month = 6 };
+        var request = new FinancialReportRequest { ShipCode = "SHIP01", Year = 2023, Month = 6 };
 
         service.GetFinancialReportDetailAsync(Arg.Any<FinancialReportRequest>())
             .ThrowsAsync(new InvalidOperationException("detail failure"));
@@ -76,21 +77,38 @@ public class FinancialControllerTests
     }
 
     [Fact]
+    public async Task GetFinancialReportDetail_ReturnsNotFound_WhenShipMissing()
+    {
+        var service = Substitute.For<IFinancialService>();
+        var logger = Substitute.For<ILogger<FinancialController>>();
+        var controller = new FinancialController(service, logger);
+        var request = new FinancialReportRequest { ShipCode = "MISSING", Year = 2023, Month = 6 };
+
+        service.GetFinancialReportDetailAsync(Arg.Any<FinancialReportRequest>())
+            .ThrowsAsync(new NotFoundException("Ship with code MISSING not found"));
+
+        var response = await controller.GetFinancialReportDetail(request);
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(response.Result);
+        Assert.Equal("Ship with code MISSING not found", notFound.Value);
+    }
+
+    [Fact]
     public async Task GetFinancialReportSummary_ReturnsOk_WhenRequestIsValid()
     {
         var service = Substitute.For<IFinancialService>();
         var logger = Substitute.For<ILogger<FinancialController>>();
         var controller = new FinancialController(service, logger);
-        var request = new FinancialReportRequest { ShipId = 1, Year = 2023, Month = 6 };
+        var request = new FinancialReportRequest { ShipCode = "SHIP01", Year = 2023, Month = 6 };
         var items = new[]
         {
             new FinancialReportItem
             {
-                AccountId = 2,
-                AccountCode = "A002",
-                AccountName = "Maintenance",
-                ActualAmount = 2000,
-                BudgetAmount = 1800
+                AccountDescription = "Maintenance",
+                AccountNumber = "A002",
+                ActualValue = 2000,
+                BudgetValue = 1800,
+                VarianceActual = 200
             }
         }.AsEnumerable();
 
@@ -101,7 +119,7 @@ public class FinancialControllerTests
         var okResult = Assert.IsType<OkObjectResult>(response.Result);
         var payload = Assert.IsAssignableFrom<IEnumerable<FinancialReportItem>>(okResult.Value);
         Assert.Single(payload);
-        Assert.Equal("A002", payload.First().AccountCode);
+        Assert.Equal("A002", payload.First().AccountNumber);
     }
 
     [Fact]
@@ -110,7 +128,7 @@ public class FinancialControllerTests
         var service = Substitute.For<IFinancialService>();
         var logger = Substitute.For<ILogger<FinancialController>>();
         var controller = new FinancialController(service, logger);
-        var request = new FinancialReportRequest { ShipId = 1, Year = 2023, Month = 0 };
+        var request = new FinancialReportRequest { ShipCode = "SHIP01", Year = 2023, Month = 0 };
 
         var response = await controller.GetFinancialReportSummary(request);
 
@@ -124,7 +142,7 @@ public class FinancialControllerTests
         var service = Substitute.For<IFinancialService>();
         var logger = Substitute.For<ILogger<FinancialController>>();
         var controller = new FinancialController(service, logger);
-        var request = new FinancialReportRequest { ShipId = 1, Year = 2023, Month = 6 };
+        var request = new FinancialReportRequest { ShipCode = "SHIP01", Year = 2023, Month = 6 };
 
         service.GetFinancialReportSummaryAsync(Arg.Any<FinancialReportRequest>())
             .ThrowsAsync(new InvalidOperationException("summary failure"));
@@ -133,5 +151,22 @@ public class FinancialControllerTests
 
         var objectResult = Assert.IsType<ObjectResult>(response.Result);
         Assert.Equal(500, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetFinancialReportSummary_ReturnsNotFound_WhenShipMissing()
+    {
+        var service = Substitute.For<IFinancialService>();
+        var logger = Substitute.For<ILogger<FinancialController>>();
+        var controller = new FinancialController(service, logger);
+        var request = new FinancialReportRequest { ShipCode = "MISSING", Year = 2023, Month = 6 };
+
+        service.GetFinancialReportSummaryAsync(Arg.Any<FinancialReportRequest>())
+            .ThrowsAsync(new NotFoundException("Ship with code MISSING not found"));
+
+        var response = await controller.GetFinancialReportSummary(request);
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(response.Result);
+        Assert.Equal("Ship with code MISSING not found", notFound.Value);
     }
 }

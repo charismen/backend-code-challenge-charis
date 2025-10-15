@@ -1,14 +1,15 @@
 USE ShipManagement;
 GO
 
--- Stored procedure for crew list with pagination, sorting, and filtering
 CREATE OR ALTER PROCEDURE GetCrewList
     @ShipCode NVARCHAR(10),
     @SearchTerm NVARCHAR(100) = NULL,
     @SortColumn NVARCHAR(50) = 'RankName',
     @SortDirection NVARCHAR(4) = 'ASC',
     @PageNumber INT = 1,
-    @PageSize INT = 10
+    @PageSize INT = 10,
+    @StatusFilter NVARCHAR(20) = NULL,
+    @TotalCount INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -35,11 +36,22 @@ BEGIN
         SET @SortDirection = 'ASC';
     END
     
+    DECLARE @Statuses TABLE (Status NVARCHAR(20));
+
+    IF @StatusFilter IS NULL
+    BEGIN
+        INSERT INTO @Statuses VALUES ('Onboard'), ('Relief Due');
+    END
+    ELSE
+    BEGIN
+        INSERT INTO @Statuses VALUES (@StatusFilter);
+    END
+    
     -- Calculate current date for status determination
     DECLARE @CurrentDate DATE = GETDATE();
     
     -- Create a CTE to calculate crew status and apply filters
-    WITH CrewStatusCTE AS (
+    ;WITH CrewStatusCTE AS (
         SELECT 
             r.RankName,
             c.CrewMemberId,
@@ -48,6 +60,7 @@ BEGIN
             DATEDIFF(YEAR, c.BirthDate, @CurrentDate) AS Age,
             c.Nationality,
             csh.SignOnDate,
+            csh.SignOffDate,
             CASE
                 WHEN csh.SignOnDate > @CurrentDate THEN 'Planned'
                 WHEN csh.SignOffDate IS NULL AND csh.EndOfContractDate >= @CurrentDate THEN 'Onboard'
@@ -75,22 +88,60 @@ BEGIN
     )
     
     -- Get total count for pagination
-    SELECT @PageNumber AS PageNumber, @PageSize AS PageSize, COUNT(*) AS TotalCount
+    SELECT @TotalCount = COUNT(*)
     FROM CrewStatusCTE
-    WHERE Status IN ('Onboard', 'Relief Due');
+    WHERE Status IN (SELECT Status FROM @Statuses);
+    
+    ;WITH CrewStatusCTE AS (
+        SELECT 
+            r.RankName,
+            c.CrewMemberId,
+            c.FirstName,
+            c.LastName,
+            DATEDIFF(YEAR, c.BirthDate, @CurrentDate) AS Age,
+            c.Nationality,
+            csh.SignOnDate,
+            csh.SignOffDate,
+            CASE
+                WHEN csh.SignOnDate > @CurrentDate THEN 'Planned'
+                WHEN csh.SignOffDate IS NULL AND csh.EndOfContractDate >= @CurrentDate THEN 'Onboard'
+                WHEN csh.SignOffDate IS NULL AND DATEDIFF(DAY, csh.EndOfContractDate, @CurrentDate) > 30 THEN 'Relief Due'
+                WHEN csh.SignOffDate IS NOT NULL THEN 'Signed Off'
+                ELSE 'Unknown'
+            END AS Status
+        FROM CrewServiceHistory csh
+        INNER JOIN CrewMember c ON csh.CrewMemberId = c.CrewMemberId
+        INNER JOIN CrewRank r ON csh.RankId = r.RankId
+        WHERE 
+            csh.ShipCode = @ShipCode
+            AND csh.SignOffDate IS NULL -- Exclude signed off crew
+            AND (
+                @SearchTerm IS NULL
+                OR c.CrewMemberId LIKE '%' + @SearchTerm + '%'
+                OR c.FirstName LIKE '%' + @SearchTerm + '%'
+                OR c.LastName LIKE '%' + @SearchTerm + '%'
+                OR CAST(DATEDIFF(YEAR, c.BirthDate, @CurrentDate) AS NVARCHAR) LIKE '%' + @SearchTerm + '%'
+                OR c.Nationality LIKE '%' + @SearchTerm + '%'
+                OR r.RankName LIKE '%' + @SearchTerm + '%'
+                OR CONVERT(NVARCHAR, csh.SignOnDate, 106) LIKE '%' + @SearchTerm + '%'
+                OR CONVERT(NVARCHAR, csh.SignOnDate, 105) LIKE '%' + @SearchTerm + '%'
+            )
+    )
     
     -- Get paginated results with dynamic sorting
     SELECT 
+        @ShipCode AS ShipCode,
         RankName,
         CrewMemberId,
         FirstName,
         LastName,
         Age,
         Nationality,
-        FORMAT(SignOnDate, 'dd MMM yyyy') AS SignOnDate,
+        SignOnDate,
+        SignOffDate,
         Status
     FROM CrewStatusCTE
-    WHERE Status IN ('Onboard', 'Relief Due')
+    WHERE Status IN (SELECT Status FROM @Statuses)
     ORDER BY
         CASE WHEN @SortColumn = 'RankName' AND @SortDirection = 'ASC' THEN RankName END ASC,
         CASE WHEN @SortColumn = 'RankName' AND @SortDirection = 'DESC' THEN RankName END DESC,
@@ -157,6 +208,10 @@ BEGIN
     BEGIN
         SET @FiscalYearStartDate = DATEFROMPARTS(YEAR(@AccountPeriod), @FiscalStartMonth, 1);
     END
+
+    DECLARE @AccountPeriodLabel NVARCHAR(12) = LEFT(DATENAME(MONTH, @AccountPeriod), 3) + ' ' + CAST(YEAR(@AccountPeriod) AS NVARCHAR(4));
+    DECLARE @FiscalYearStartLabel NVARCHAR(12) = LEFT(DATENAME(MONTH, @FiscalYearStartDate), 3) + ' ' + CAST(YEAR(@FiscalYearStartDate) AS NVARCHAR(4));
+    DECLARE @FiscalYearEndLabel NVARCHAR(12) = @AccountPeriodLabel;
     
     -- Build account hierarchy including levels
     ;WITH AccountHierarchyCTE AS (
@@ -287,17 +342,17 @@ BEGIN
     
     -- Final result with variances and period labels
     SELECT 
-        afd.Description AS [COA Description],
-        afd.AccountNumber AS [Account Number],
-        afd.ActualValue AS [Actual Value],
-        afd.BudgetValue AS [Budget Value],
-        (afd.ActualValue - afd.BudgetValue) AS [Variance Actual],
-        afd.ActualValueYTD AS [Actual Value YTD],
-        afd.BudgetValueYTD AS [Budget Value YTD],
-        (afd.ActualValueYTD - afd.BudgetValueYTD) AS [Variance YTD],
-        FORMAT(@AccountPeriod, 'MMM yyyy') AS AccountPeriodLabel,
-        FORMAT(@FiscalYearStartDate, 'MMM yyyy') AS FiscalYearStartLabel,
-        FORMAT(@AccountPeriod, 'MMM yyyy') AS FiscalYearEndLabel
+        afd.Description AS AccountDescription,
+        afd.AccountNumber,
+        afd.ActualValue,
+        afd.BudgetValue,
+        (afd.ActualValue - afd.BudgetValue) AS VarianceActual,
+        afd.ActualValueYTD,
+        afd.BudgetValueYTD,
+        (afd.ActualValueYTD - afd.BudgetValueYTD) AS VarianceYTD,
+        @AccountPeriodLabel AS AccountPeriodLabel,
+        @FiscalYearStartLabel AS FiscalYearStartLabel,
+        @FiscalYearEndLabel AS FiscalYearEndLabel
     FROM AggregatedFinancialDataCTE afd
     WHERE 
         (afd.BudgetValue <> 0 OR afd.ActualValue <> 0 OR afd.BudgetValueYTD <> 0 OR afd.ActualValueYTD <> 0)
@@ -350,6 +405,10 @@ BEGIN
     BEGIN
         SET @FiscalYearStartDate = DATEFROMPARTS(YEAR(@AccountPeriod), @FiscalStartMonth, 1);
     END
+
+    DECLARE @AccountPeriodLabelSummary NVARCHAR(12) = LEFT(DATENAME(MONTH, @AccountPeriod), 3) + ' ' + CAST(YEAR(@AccountPeriod) AS NVARCHAR(4));
+    DECLARE @FiscalYearStartLabelSummary NVARCHAR(12) = LEFT(DATENAME(MONTH, @FiscalYearStartDate), 3) + ' ' + CAST(YEAR(@FiscalYearStartDate) AS NVARCHAR(4));
+    DECLARE @FiscalYearEndLabelSummary NVARCHAR(12) = @AccountPeriodLabelSummary;
     
     -- Get top-level accounts only
     ;WITH TopLevelAccountsCTE AS (
@@ -424,17 +483,17 @@ BEGIN
     
     -- Final result with variances and period labels
     SELECT 
-        tla.Description AS [COA Description],
-        tla.AccountNumber AS [Account Number],
-        ISNULL(a.ActualValue, 0) AS [Actual Value],
-        ISNULL(b.BudgetValue, 0) AS [Budget Value],
-        ISNULL(a.ActualValue, 0) - ISNULL(b.BudgetValue, 0) AS [Variance Actual],
-        ISNULL(ay.ActualValueYTD, 0) AS [Actual Value YTD],
-        ISNULL(byc.BudgetValueYTD, 0) AS [Budget Value YTD],
-        ISNULL(ay.ActualValueYTD, 0) - ISNULL(byc.BudgetValueYTD, 0) AS [Variance YTD],
-        FORMAT(@AccountPeriod, 'MMM yyyy') AS AccountPeriodLabel,
-        FORMAT(@FiscalYearStartDate, 'MMM yyyy') AS FiscalYearStartLabel,
-        FORMAT(@AccountPeriod, 'MMM yyyy') AS FiscalYearEndLabel
+        tla.Description AS AccountDescription,
+        tla.AccountNumber,
+        ISNULL(a.ActualValue, 0) AS ActualValue,
+        ISNULL(b.BudgetValue, 0) AS BudgetValue,
+        ISNULL(a.ActualValue, 0) - ISNULL(b.BudgetValue, 0) AS VarianceActual,
+        ISNULL(ay.ActualValueYTD, 0) AS ActualValueYTD,
+        ISNULL(byc.BudgetValueYTD, 0) AS BudgetValueYTD,
+        ISNULL(ay.ActualValueYTD, 0) - ISNULL(byc.BudgetValueYTD, 0) AS VarianceYTD,
+        @AccountPeriodLabelSummary AS AccountPeriodLabel,
+        @FiscalYearStartLabelSummary AS FiscalYearStartLabel,
+        @FiscalYearEndLabelSummary AS FiscalYearEndLabel
     FROM TopLevelAccountsCTE tla
     LEFT JOIN BudgetCTE b ON tla.AccountNumber = b.TopLevelAccount
     LEFT JOIN ActualCTE a ON tla.AccountNumber = a.TopLevelAccount

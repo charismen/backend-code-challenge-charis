@@ -1,5 +1,8 @@
+using System;
 using Dapper;
+using Microsoft.Data.SqlClient;
 using ShipManagement.API.Data;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 
 namespace ShipManagement.API.Services
@@ -19,60 +22,115 @@ namespace ShipManagement.API.Services
             return await connection.QueryAsync<User>("EXEC GetUsers");
         }
 
-        public async Task<User?> GetUserByIdAsync(int id)
+        public async Task<User?> GetUserByIdAsync(int userId)
         {
             using var connection = _connectionFactory.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<User>(
-                "EXEC GetUserById @Id", new { Id = id });
+                "EXEC GetUserById @UserId", new { UserId = userId });
         }
 
-        public async Task<int> CreateUserAsync(User user)
+        public async Task<User> CreateUserAsync(User user)
         {
             using var connection = _connectionFactory.CreateConnection();
-            return await connection.QuerySingleAsync<int>(
-                "EXEC CreateUser @Username, @Email, @FirstName, @LastName, @IsActive; SELECT SCOPE_IDENTITY();",
-                new { user.Username, user.Email, user.FirstName, user.LastName, user.IsActive });
+            return await connection.QuerySingleAsync<User>(
+                "EXEC CreateUser @Name, @Role",
+                new { user.Name, user.Role });
         }
 
-        public async Task<bool> UpdateUserAsync(User user)
+        public async Task<User?> UpdateUserAsync(User user)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var affectedRows = await connection.ExecuteAsync(
-                "EXEC UpdateUser @Id, @Username, @Email, @FirstName, @LastName, @IsActive",
-                new { user.Id, user.Username, user.Email, user.FirstName, user.LastName, user.IsActive });
-            return affectedRows > 0;
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                return await connection.QueryFirstOrDefaultAsync<User>(
+                    "EXEC UpdateUser @UserId, @Name, @Role",
+                    new { UserId = user.UserId, user.Name, user.Role });
+            }
+            catch (SqlException ex) when (IsUserNotFound(ex))
+            {
+                throw new NotFoundException($"User with ID {user.UserId} not found");
+            }
         }
 
-        public async Task<bool> DeleteUserAsync(int id)
+        public async Task<bool> DeleteUserAsync(int userId)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var affectedRows = await connection.ExecuteAsync("EXEC DeleteUser @Id", new { Id = id });
-            return affectedRows > 0;
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var affectedRows = await connection.ExecuteAsync("EXEC DeleteUser @UserId", new { UserId = userId });
+                return affectedRows > 0;
+            }
+            catch (SqlException ex) when (IsUserNotFound(ex))
+            {
+                throw new NotFoundException($"User with ID {userId} not found");
+            }
         }
 
-        public async Task<bool> AssignShipToUserAsync(int userId, int shipId)
+        public async Task<bool> AssignShipToUserAsync(int userId, string shipCode)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var affectedRows = await connection.ExecuteAsync(
-                "EXEC AssignShipToUser @UserId, @ShipId", 
-                new { UserId = userId, ShipId = shipId });
-            return affectedRows > 0;
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var affectedRows = await connection.ExecuteAsync(
+                    "EXEC AssignShipToUser @UserId, @ShipCode", 
+                    new { UserId = userId, ShipCode = shipCode });
+                return affectedRows > 0;
+            }
+            catch (SqlException ex) when (IsUserNotFound(ex))
+            {
+                throw new NotFoundException($"User with ID {userId} not found");
+            }
+            catch (SqlException ex) when (IsShipNotFound(ex))
+            {
+                throw new NotFoundException($"Ship with code {shipCode} not found");
+            }
         }
 
-        public async Task<bool> RemoveShipFromUserAsync(int userId, int shipId)
+        public async Task<bool> RemoveShipFromUserAsync(int userId, string shipCode)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var affectedRows = await connection.ExecuteAsync(
-                "EXEC RemoveShipFromUser @UserId, @ShipId", 
-                new { UserId = userId, ShipId = shipId });
-            return affectedRows > 0;
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var affectedRows = await connection.ExecuteAsync(
+                    "EXEC RemoveShipFromUser @UserId, @ShipCode", 
+                    new { UserId = userId, ShipCode = shipCode });
+                return affectedRows > 0;
+            }
+            catch (SqlException ex) when (IsAssignmentNotFound(ex))
+            {
+                throw new NotFoundException($"Assignment between user {userId} and ship {shipCode} not found");
+            }
+            catch (SqlException ex) when (IsUserNotFound(ex))
+            {
+                throw new NotFoundException($"User with ID {userId} not found");
+            }
+            catch (SqlException ex) when (IsShipNotFound(ex))
+            {
+                throw new NotFoundException($"Ship with code {shipCode} not found");
+            }
         }
 
         public async Task<IEnumerable<Ship>> GetShipsByUserAsync(int userId)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            return await connection.QueryAsync<Ship>(
-                "EXEC GetShipsByUser @UserId", new { UserId = userId });
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                return await connection.QueryAsync<Ship>(
+                    "EXEC GetShipsByUser @UserId", new { UserId = userId });
+            }
+            catch (SqlException ex) when (IsUserNotFound(ex))
+            {
+                throw new NotFoundException($"User with ID {userId} not found");
+            }
         }
+
+        private static bool IsUserNotFound(SqlException ex) =>
+            ex.Message.IndexOf("User not found", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsShipNotFound(SqlException ex) =>
+            ex.Message.IndexOf("Ship not found", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsAssignmentNotFound(SqlException ex) =>
+            ex.Message.IndexOf("Assignment not found", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

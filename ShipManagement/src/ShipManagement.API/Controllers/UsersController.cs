@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 using ShipManagement.API.Services;
 
@@ -51,15 +52,15 @@ namespace ShipManagement.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<int>> CreateUser(User user)
+        public async Task<ActionResult<User>> CreateUser(User user)
         {
             try
             {
-                if (string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Email))
-                    return BadRequest("Username and email are required");
+                if (string.IsNullOrWhiteSpace(user.Name) || string.IsNullOrWhiteSpace(user.Role))
+                    return BadRequest("User name and role are required");
 
-                var id = await _userService.CreateUserAsync(user);
-                return CreatedAtAction(nameof(GetUserById), new { id }, id);
+                var created = await _userService.CreateUserAsync(user);
+                return CreatedAtAction(nameof(GetUserById), new { id = created.UserId }, created);
             }
             catch (Exception ex)
             {
@@ -73,14 +74,19 @@ namespace ShipManagement.API.Controllers
         {
             try
             {
-                if (id != user.Id)
+                if (id != user.UserId)
                     return BadRequest("User ID mismatch");
 
-                var success = await _userService.UpdateUserAsync(user);
-                if (!success)
+                var updated = await _userService.UpdateUserAsync(user);
+                if (updated is null)
                     return NotFound($"User with ID {id} not found");
 
                 return NoContent();
+            }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "User with ID {Id} not found during update", id);
+                return NotFound(nf.Message);
             }
             catch (Exception ex)
             {
@@ -100,6 +106,11 @@ namespace ShipManagement.API.Controllers
 
                 return NoContent();
             }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "User with ID {Id} not found during delete", id);
+                return NotFound(nf.Message);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting user with ID {Id}", id);
@@ -107,38 +118,48 @@ namespace ShipManagement.API.Controllers
             }
         }
 
-        [HttpPost("{userId}/ships/{shipId}")]
-        public async Task<IActionResult> AssignShipToUser(int userId, int shipId)
+        [HttpPost("{userId}/ships/{shipCode}")]
+        public async Task<IActionResult> AssignShipToUser(int userId, string shipCode)
         {
             try
             {
-                var success = await _userService.AssignShipToUserAsync(userId, shipId);
+                var success = await _userService.AssignShipToUserAsync(userId, shipCode);
                 if (!success)
                     return NotFound("User or ship not found");
 
                 return NoContent();
             }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "Assign ship {ShipCode} to user {UserId} failed: {Message}", shipCode, userId, nf.Message);
+                return NotFound(nf.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error assigning ship {ShipId} to user {UserId}", shipId, userId);
+                _logger.LogError(ex, "Error assigning ship {ShipCode} to user {UserId}", shipCode, userId);
                 return StatusCode(500, "An error occurred while assigning the ship to the user");
             }
         }
 
-        [HttpDelete("{userId}/ships/{shipId}")]
-        public async Task<IActionResult> RemoveShipFromUser(int userId, int shipId)
+        [HttpDelete("{userId}/ships/{shipCode}")]
+        public async Task<IActionResult> RemoveShipFromUser(int userId, string shipCode)
         {
             try
             {
-                var success = await _userService.RemoveShipFromUserAsync(userId, shipId);
+                var success = await _userService.RemoveShipFromUserAsync(userId, shipCode);
                 if (!success)
                     return NotFound("User-ship assignment not found");
 
                 return NoContent();
             }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "Remove ship {ShipCode} from user {UserId} failed: {Message}", shipCode, userId, nf.Message);
+                return NotFound(nf.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error removing ship {ShipId} from user {UserId}", shipId, userId);
+                _logger.LogError(ex, "Error removing ship {ShipCode} from user {UserId}", shipCode, userId);
                 return StatusCode(500, "An error occurred while removing the ship from the user");
             }
         }
@@ -150,6 +171,11 @@ namespace ShipManagement.API.Controllers
             {
                 var ships = await _userService.GetShipsByUserAsync(userId);
                 return Ok(ships);
+            }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "User with ID {UserId} not found when fetching ships", userId);
+                return NotFound(nf.Message);
             }
             catch (Exception ex)
             {

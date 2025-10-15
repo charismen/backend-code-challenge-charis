@@ -22,15 +22,15 @@ namespace ShipManagement.API.Controllers
         {
             try
             {
-                if (request.ShipId <= 0)
-                    return BadRequest("Valid ShipId is required");
+                if (string.IsNullOrWhiteSpace(request.ShipCode))
+                    return BadRequest("Ship code is required");
 
                 var result = await _crewService.GetCrewListAsync(request);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving crew list for ship {ShipId}", request.ShipId);
+                _logger.LogError(ex, "Error retrieving crew list for ship {ShipCode}", request.ShipCode);
                 return StatusCode(500, "An error occurred while retrieving the crew list");
             }
         }

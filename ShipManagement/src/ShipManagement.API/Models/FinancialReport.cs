@@ -2,22 +2,23 @@ namespace ShipManagement.API.Models
 {
     public class FinancialReportRequest
     {
-        public int ShipId { get; set; }
+        public string ShipCode { get; set; } = string.Empty;
         public int Year { get; set; }
         public int Month { get; set; }
     }
 
     public class FinancialReportItem
     {
-        public int AccountId { get; set; }
-        public string AccountCode { get; set; } = string.Empty;
-        public string AccountName { get; set; } = string.Empty;
-        public int? ParentAccountId { get; set; }
-        public decimal ActualAmount { get; set; }
-        public decimal BudgetAmount { get; set; }
-        public decimal Variance { get; set; }
-        public decimal YTDActual { get; set; }
-        public decimal YTDBudget { get; set; }
-        public decimal YTDVariance { get; set; }
+        public string AccountDescription { get; set; } = string.Empty;
+        public string AccountNumber { get; set; } = string.Empty;
+        public decimal ActualValue { get; set; }
+        public decimal BudgetValue { get; set; }
+        public decimal VarianceActual { get; set; }
+        public decimal ActualValueYTD { get; set; }
+        public decimal BudgetValueYTD { get; set; }
+        public decimal VarianceYTD { get; set; }
+        public string AccountPeriodLabel { get; set; } = string.Empty;
+        public string FiscalYearStartLabel { get; set; } = string.Empty;
+        public string FiscalYearEndLabel { get; set; } = string.Empty;
     }
 }

@@ -1,5 +1,8 @@
+using System;
 using Dapper;
+using Microsoft.Data.SqlClient;
 using ShipManagement.API.Data;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 
 namespace ShipManagement.API.Services
@@ -26,28 +29,44 @@ namespace ShipManagement.API.Services
                 "EXEC GetShipByCode @Code", new { Code = code });
         }
 
-        public async Task<int> CreateShipAsync(Ship ship)
+        public async Task<Ship> CreateShipAsync(Ship ship)
         {
             using var connection = _connectionFactory.CreateConnection();
-            return await connection.QuerySingleAsync<int>(
-                "EXEC CreateShip @Code, @Name, @YearBuilt; SELECT SCOPE_IDENTITY();", 
-                new { ship.Code, ship.Name, ship.YearBuilt });
+            return await connection.QuerySingleAsync<Ship>(
+                "EXEC CreateShip @Code, @Name, @FiscalYear, @Status", 
+                new { ship.Code, ship.Name, ship.FiscalYear, ship.Status });
         }
 
-        public async Task<bool> UpdateShipAsync(Ship ship)
+        public async Task<Ship?> UpdateShipAsync(Ship ship)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var affectedRows = await connection.ExecuteAsync(
-                "EXEC UpdateShip @Id, @Code, @Name, @YearBuilt", 
-                new { ship.Id, ship.Code, ship.Name, ship.YearBuilt });
-            return affectedRows > 0;
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                return await connection.QueryFirstOrDefaultAsync<Ship>(
+                    "EXEC UpdateShip @Code, @Name, @FiscalYear, @Status", 
+                    new { ship.Code, ship.Name, ship.FiscalYear, ship.Status });
+            }
+            catch (SqlException ex) when (IsShipNotFound(ex))
+            {
+                throw new NotFoundException($"Ship with code {ship.Code} not found");
+            }
         }
 
-        public async Task<bool> DeleteShipAsync(int id)
+        public async Task<bool> DeleteShipAsync(string code)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var affectedRows = await connection.ExecuteAsync("EXEC DeleteShip @Id", new { Id = id });
-            return affectedRows > 0;
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var affectedRows = await connection.ExecuteAsync("EXEC DeleteShip @Code", new { Code = code });
+                return affectedRows > 0;
+            }
+            catch (SqlException ex) when (IsShipNotFound(ex))
+            {
+                throw new NotFoundException($"Ship with code {code} not found");
+            }
         }
+
+        private static bool IsShipNotFound(SqlException ex) =>
+            ex.Message.IndexOf("Ship not found", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

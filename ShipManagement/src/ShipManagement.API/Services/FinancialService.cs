@@ -1,5 +1,8 @@
+using System;
 using Dapper;
+using Microsoft.Data.SqlClient;
 using ShipManagement.API.Data;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 
 namespace ShipManagement.API.Services
@@ -15,18 +18,37 @@ namespace ShipManagement.API.Services
 
         public async Task<IEnumerable<FinancialReportItem>> GetFinancialReportDetailAsync(FinancialReportRequest request)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            return await connection.QueryAsync<FinancialReportItem>(
-                "EXEC GetFinancialReportDetail @ShipId, @Year, @Month",
-                new { request.ShipId, request.Year, request.Month });
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var accountPeriod = new DateTime(request.Year, request.Month, 1);
+                return await connection.QueryAsync<FinancialReportItem>(
+                    "EXEC GetFinancialReportDetail @ShipCode, @AccountPeriod",
+                    new { request.ShipCode, AccountPeriod = accountPeriod });
+            }
+            catch (SqlException ex) when (IsShipNotFound(ex))
+            {
+                throw new NotFoundException($"Ship with code {request.ShipCode} not found");
+            }
         }
 
         public async Task<IEnumerable<FinancialReportItem>> GetFinancialReportSummaryAsync(FinancialReportRequest request)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            return await connection.QueryAsync<FinancialReportItem>(
-                "EXEC GetFinancialReportSummary @ShipId, @Year, @Month",
-                new { request.ShipId, request.Year, request.Month });
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var accountPeriod = new DateTime(request.Year, request.Month, 1);
+                return await connection.QueryAsync<FinancialReportItem>(
+                    "EXEC GetFinancialReportSummary @ShipCode, @AccountPeriod",
+                    new { request.ShipCode, AccountPeriod = accountPeriod });
+            }
+            catch (SqlException ex) when (IsShipNotFound(ex))
+            {
+                throw new NotFoundException($"Ship with code {request.ShipCode} not found");
+            }
         }
+
+        private static bool IsShipNotFound(SqlException ex) =>
+            ex.Message.IndexOf("Ship not found", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

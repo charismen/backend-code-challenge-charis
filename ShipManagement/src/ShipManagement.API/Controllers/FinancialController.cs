@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
 using ShipManagement.API.Services;
 
@@ -22,16 +23,21 @@ namespace ShipManagement.API.Controllers
         {
             try
             {
-                if (request.ShipId <= 0 || request.Year <= 0 || request.Month <= 0 || request.Month > 12)
-                    return BadRequest("Valid ShipId, Year, and Month (1-12) are required");
+                if (string.IsNullOrWhiteSpace(request.ShipCode) || request.Year <= 0 || request.Month <= 0 || request.Month > 12)
+                    return BadRequest("Valid ShipCode, Year, and Month (1-12) are required");
 
                 var result = await _financialService.GetFinancialReportDetailAsync(request);
                 return Ok(result);
             }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "Ship with code {ShipCode} not found for financial detail request", request.ShipCode);
+                return NotFound(nf.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving financial report detail for ship {ShipId}, period {Year}-{Month}", 
-                    request.ShipId, request.Year, request.Month);
+                _logger.LogError(ex, "Error retrieving financial report detail for ship {ShipCode}, period {Year}-{Month}", 
+                    request.ShipCode, request.Year, request.Month);
                 return StatusCode(500, "An error occurred while retrieving the financial report");
             }
         }
@@ -41,16 +47,21 @@ namespace ShipManagement.API.Controllers
         {
             try
             {
-                if (request.ShipId <= 0 || request.Year <= 0 || request.Month <= 0 || request.Month > 12)
-                    return BadRequest("Valid ShipId, Year, and Month (1-12) are required");
+                if (string.IsNullOrWhiteSpace(request.ShipCode) || request.Year <= 0 || request.Month <= 0 || request.Month > 12)
+                    return BadRequest("Valid ShipCode, Year, and Month (1-12) are required");
 
                 var result = await _financialService.GetFinancialReportSummaryAsync(request);
                 return Ok(result);
             }
+            catch (NotFoundException nf)
+            {
+                _logger.LogWarning(nf, "Ship with code {ShipCode} not found for financial summary request", request.ShipCode);
+                return NotFound(nf.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving financial report summary for ship {ShipId}, period {Year}-{Month}", 
-                    request.ShipId, request.Year, request.Month);
+                _logger.LogError(ex, "Error retrieving financial report summary for ship {ShipCode}, period {Year}-{Month}", 
+                    request.ShipCode, request.Year, request.Month);
                 return StatusCode(500, "An error occurred while retrieving the financial report summary");
             }
         }
