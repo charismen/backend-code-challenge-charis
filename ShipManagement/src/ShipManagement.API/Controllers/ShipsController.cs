@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
@@ -7,6 +8,7 @@ namespace ShipManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ShipsController : ControllerBase
     {
         private readonly IShipService _shipService;
@@ -26,6 +28,11 @@ namespace ShipManagement.API.Controllers
                 var ships = await _shipService.GetAllShipsAsync();
                 return Ok(ships);
             }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving ships");
@@ -43,6 +50,11 @@ namespace ShipManagement.API.Controllers
                     return NotFound($"Ship with code {code} not found");
 
                 return Ok(ship);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {
@@ -69,6 +81,11 @@ namespace ShipManagement.API.Controllers
             {
                 _logger.LogWarning(cf, "Ship creation failed for code {Code}: {Message}", ship.Code, cf.Message);
                 return Conflict(cf.Message);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {
@@ -100,6 +117,11 @@ namespace ShipManagement.API.Controllers
                 _logger.LogWarning(nf, "Ship with code {Code} not found during update", code);
                 return NotFound(nf.Message);
             }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating ship with code {Code}", code);
@@ -122,6 +144,11 @@ namespace ShipManagement.API.Controllers
             {
                 _logger.LogWarning(nf, "Ship with code {Code} not found during delete", code);
                 return NotFound(nf.Message);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {

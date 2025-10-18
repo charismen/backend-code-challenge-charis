@@ -77,6 +77,23 @@ public class FinancialControllerTests
     }
 
     [Fact]
+    public async Task GetFinancialReportDetail_ReturnsUnauthorized_WhenServiceThrowsUnauthorized()
+    {
+        var service = Substitute.For<IFinancialService>();
+        var logger = Substitute.For<ILogger<FinancialController>>();
+        var controller = new FinancialController(service, logger);
+        var request = new FinancialReportRequest { ShipCode = "SHIP01", Year = 2023, Month = 6 };
+
+        service.GetFinancialReportDetailAsync(Arg.Any<FinancialReportRequest>())
+            .ThrowsAsync(new UnauthorizedAccessException());
+
+        var response = await controller.GetFinancialReportDetail(request);
+
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(response.Result);
+        Assert.Equal("Unauthorized access", unauthorized.Value);
+    }
+
+    [Fact]
     public async Task GetFinancialReportDetail_ReturnsNotFound_WhenShipMissing()
     {
         var service = Substitute.For<IFinancialService>();
@@ -151,6 +168,23 @@ public class FinancialControllerTests
 
         var objectResult = Assert.IsType<ObjectResult>(response.Result);
         Assert.Equal(500, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetFinancialReportSummary_ReturnsUnauthorized_WhenServiceThrowsUnauthorized()
+    {
+        var service = Substitute.For<IFinancialService>();
+        var logger = Substitute.For<ILogger<FinancialController>>();
+        var controller = new FinancialController(service, logger);
+        var request = new FinancialReportRequest { ShipCode = "SHIP01", Year = 2023, Month = 6 };
+
+        service.GetFinancialReportSummaryAsync(Arg.Any<FinancialReportRequest>())
+            .ThrowsAsync(new UnauthorizedAccessException());
+
+        var response = await controller.GetFinancialReportSummary(request);
+
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(response.Result);
+        Assert.Equal("Unauthorized access", unauthorized.Value);
     }
 
     [Fact]

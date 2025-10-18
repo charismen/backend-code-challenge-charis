@@ -72,6 +72,23 @@ public class CrewControllerTests
     }
 
     [Fact]
+    public async Task GetCrewList_ReturnsUnauthorized_WhenServiceThrowsUnauthorized()
+    {
+        var service = Substitute.For<ICrewService>();
+        var logger = Substitute.For<ILogger<CrewController>>();
+        var controller = new CrewController(service, logger);
+        var request = new CrewListRequest { ShipCode = "SHIP01", PageNumber = 1, PageSize = 10 };
+
+        service.GetCrewListAsync(Arg.Any<CrewListRequest>())
+            .ThrowsAsync(new UnauthorizedAccessException());
+
+        var response = await controller.GetCrewList(request);
+
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(response.Result);
+        Assert.Equal("Unauthorized access", unauthorized.Value);
+    }
+
+    [Fact]
     public async Task GetCrewList_ReturnsInternalServerError_WhenServiceThrows()
     {
         var service = Substitute.For<ICrewService>();

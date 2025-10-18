@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
@@ -7,6 +8,7 @@ namespace ShipManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class FinancialController : ControllerBase
     {
         private readonly IFinancialService _financialService;
@@ -34,6 +36,11 @@ namespace ShipManagement.API.Controllers
                 _logger.LogWarning(nf, "Ship with code {ShipCode} not found for financial detail request", request.ShipCode);
                 return NotFound(nf.Message);
             }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving financial report detail for ship {ShipCode}, period {Year}-{Month}", 
@@ -57,6 +64,11 @@ namespace ShipManagement.API.Controllers
             {
                 _logger.LogWarning(nf, "Ship with code {ShipCode} not found for financial summary request", request.ShipCode);
                 return NotFound(nf.Message);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {

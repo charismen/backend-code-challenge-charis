@@ -53,6 +53,22 @@ public class ShipsControllerTests
     }
 
     [Fact]
+    public async Task GetAllShips_ReturnsUnauthorized_WhenServiceThrowsUnauthorized()
+    {
+        var service = Substitute.For<IShipService>();
+        var logger = Substitute.For<ILogger<ShipsController>>();
+        var controller = new ShipsController(service, logger);
+
+        service.GetAllShipsAsync()
+            .ThrowsAsync(new UnauthorizedAccessException());
+
+        var response = await controller.GetAllShips();
+
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(response.Result);
+        Assert.Equal("Unauthorized access", unauthorized.Value);
+    }
+
+    [Fact]
     public async Task GetShipByCode_ReturnsOk_WhenShipExists()
     {
         var service = Substitute.For<IShipService>();

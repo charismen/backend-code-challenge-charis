@@ -84,6 +84,24 @@ dotnet test ShipManagement/tests/ShipManagement.Tests/ShipManagement.Tests.cspro
 
 Tests use xUnit against the controller layer (`ShipManagement.Tests/Controllers`). Each suite mocks dependencies with NSubstitute to verify success, validation, and error paths without requiring HTTP hosting.
 
+## Authentication
+
+All API endpoints (except `POST /api/auth/login`) require a JWT bearer token. To obtain a token:
+
+```bash
+curl -X POST https://localhost:5001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Password123!"}'
+```
+
+Use the returned `token` value in the `Authorization` header for subsequent requests:
+
+```
+Authorization: Bearer <token>
+```
+
+Credentials and JWT settings are configurable under the `Auth` and `Jwt` sections of `appsettings.json`.
+
 ## Design Notes
 
 - **Dependency Injection** – Services implement interfaces (`IShipService`, `ICrewService`, etc.) and are registered in `Program.cs` for clear separation between controllers and data access.

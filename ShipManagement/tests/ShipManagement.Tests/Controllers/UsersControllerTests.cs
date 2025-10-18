@@ -50,6 +50,22 @@ public class UsersControllerTests
     }
 
     [Fact]
+    public async Task GetAllUsers_ReturnsUnauthorized_WhenServiceThrowsUnauthorized()
+    {
+        var service = Substitute.For<IUserService>();
+        var logger = Substitute.For<ILogger<UsersController>>();
+        var controller = new UsersController(service, logger);
+
+        service.GetAllUsersAsync()
+            .ThrowsAsync(new UnauthorizedAccessException());
+
+        var response = await controller.GetAllUsers();
+
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(response.Result);
+        Assert.Equal("Unauthorized access", unauthorized.Value);
+    }
+
+    [Fact]
     public async Task UpdateUser_ReturnsNotFound_WhenServiceReturnsNull()
     {
         var service = Substitute.For<IUserService>();

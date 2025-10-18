@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShipManagement.API.Exceptions;
 using ShipManagement.API.Models;
@@ -7,6 +8,7 @@ namespace ShipManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -26,6 +28,11 @@ namespace ShipManagement.API.Controllers
                 var users = await _userService.GetAllUsersAsync();
                 return Ok(users);
             }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving users");
@@ -43,6 +50,11 @@ namespace ShipManagement.API.Controllers
                     return NotFound($"User with ID {id} not found");
 
                 return Ok(user);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {
@@ -67,6 +79,11 @@ namespace ShipManagement.API.Controllers
 
                 var created = await _userService.CreateUserAsync(newUser);
                 return CreatedAtAction(nameof(GetUserById), new { id = created.UserId }, created);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {
@@ -99,6 +116,11 @@ namespace ShipManagement.API.Controllers
                 _logger.LogWarning(nf, "User with ID {Id} not found during update", id);
                 return NotFound(nf.Message);
             }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating user with ID {Id}", id);
@@ -118,6 +140,11 @@ namespace ShipManagement.API.Controllers
             {
                 _logger.LogWarning(nf, "User with ID {Id} not found during delete", id);
                 return NotFound(nf.Message);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {
@@ -147,6 +174,11 @@ namespace ShipManagement.API.Controllers
                 _logger.LogWarning(cf, "Assign ship {ShipCode} to user {UserId} failed: {Message}", shipCode, userId, cf.Message);
                 return Conflict(cf.Message);
             }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error assigning ship {ShipCode} to user {UserId}", shipCode, userId);
@@ -170,6 +202,11 @@ namespace ShipManagement.API.Controllers
                 _logger.LogWarning(nf, "Remove ship {ShipCode} from user {UserId} failed: {Message}", shipCode, userId, nf.Message);
                 return NotFound(nf.Message);
             }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error removing ship {ShipCode} from user {UserId}", shipCode, userId);
@@ -189,6 +226,11 @@ namespace ShipManagement.API.Controllers
             {
                 _logger.LogWarning(nf, "User with ID {UserId} not found when fetching ships", userId);
                 return NotFound(nf.Message);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {

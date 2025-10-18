@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShipManagement.API.Models;
 using ShipManagement.API.Services;
@@ -6,6 +7,7 @@ namespace ShipManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class CrewController : ControllerBase
     {
         private readonly ICrewService _crewService;
@@ -31,6 +33,11 @@ namespace ShipManagement.API.Controllers
 
                 var result = await _crewService.GetCrewListAsync(request);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                _logger.LogWarning(ua, "Unauthorized access");
+                return Unauthorized("Unauthorized access");
             }
             catch (Exception ex)
             {
