@@ -110,6 +110,7 @@ Credentials and JWT settings are configurable under the `Auth` and `Jwt` section
 - **Developer Experience** – `Makefile` provides a single entry point for restoring, building, testing, running, and provisioning the database; VS Code settings simplify local debugging without modifying source controllers.
 - **Testing Approach** – Controller-focused xUnit tests offering faster feedback while still validating happy-path, validation, and failure branches.
 - **Swagger Exposure** – Root URL redirect implemented as middleware to keep Swagger discoverable, while keeping the generated doc free of extra endpoints.
+- **Authentication** – JWT tokens are issued via `POST /api/auth/login` using credentials stored in configuration; controllers simply rely on the bearer middleware for authorization enforcement.
 
 ## Additional Files & Tooling
 
