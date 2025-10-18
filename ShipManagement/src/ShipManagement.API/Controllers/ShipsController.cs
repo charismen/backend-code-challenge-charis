@@ -84,7 +84,11 @@ namespace ShipManagement.API.Controllers
             {
                 if (!string.Equals(code, ship.Code, StringComparison.OrdinalIgnoreCase))
                     return BadRequest("Ship code mismatch");
+                if (string.IsNullOrWhiteSpace(ship.Name) || string.IsNullOrWhiteSpace(ship.FiscalYear))
+                    return BadRequest("Ship name and fiscal year are required");
 
+                ship.Name = ship.Name.Trim();
+                ship.FiscalYear = ship.FiscalYear.Trim();
                 var updated = await _shipService.UpdateShipAsync(ship);
                 if (updated is null)
                     return NotFound($"Ship with code {code} not found");

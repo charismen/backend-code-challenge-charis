@@ -82,6 +82,11 @@ namespace ShipManagement.API.Controllers
             {
                 if (id != user.UserId)
                     return BadRequest("User ID mismatch");
+                if (string.IsNullOrWhiteSpace(user.Name) || string.IsNullOrWhiteSpace(user.Role))
+                    return BadRequest("User name and role are required");
+
+                user.Name = user.Name.Trim();
+                user.Role = user.Role.Trim();
 
                 var updated = await _userService.UpdateUserAsync(user);
                 if (updated is null)

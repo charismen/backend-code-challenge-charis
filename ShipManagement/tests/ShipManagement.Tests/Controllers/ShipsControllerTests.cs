@@ -197,6 +197,20 @@ public class ShipsControllerTests
     }
 
     [Fact]
+    public async Task UpdateShip_ReturnsBadRequest_WhenMandatoryFieldsMissing()
+    {
+        var service = Substitute.For<IShipService>();
+        var logger = Substitute.For<ILogger<ShipsController>>();
+        var controller = new ShipsController(service, logger);
+        var ship = new Ship { Code = "SHIP1", Name = string.Empty, FiscalYear = " ", Status = true };
+
+        var response = await controller.UpdateShip("SHIP1", ship);
+
+        Assert.IsType<BadRequestObjectResult>(response);
+        await service.DidNotReceiveWithAnyArgs().UpdateShipAsync(default!);
+    }
+
+    [Fact]
     public async Task DeleteShip_ReturnsNotFound_WhenServiceThrowsNotFound()
     {
         var service = Substitute.For<IShipService>();

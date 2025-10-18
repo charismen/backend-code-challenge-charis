@@ -82,6 +82,20 @@ public class UsersControllerTests
     }
 
     [Fact]
+    public async Task UpdateUser_ReturnsBadRequest_WhenMandatoryFieldsMissing()
+    {
+        var service = Substitute.For<IUserService>();
+        var logger = Substitute.For<ILogger<UsersController>>();
+        var controller = new UsersController(service, logger);
+        var user = new User { UserId = 1, Name = string.Empty, Role = " " };
+
+        var response = await controller.UpdateUser(1, user);
+
+        Assert.IsType<BadRequestObjectResult>(response);
+        await service.DidNotReceiveWithAnyArgs().UpdateUserAsync(default!);
+    }
+
+    [Fact]
     public async Task DeleteUser_ReturnsNotFound_WhenServiceThrowsNotFound()
     {
         var service = Substitute.For<IUserService>();
