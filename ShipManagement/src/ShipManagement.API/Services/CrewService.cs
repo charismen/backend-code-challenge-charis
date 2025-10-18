@@ -17,14 +17,17 @@ namespace ShipManagement.API.Services
         public async Task<PagedResult<CrewMember>> GetCrewListAsync(CrewListRequest request)
         {
             using var connection = _connectionFactory.CreateConnection();
-            
+
+            var pageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber;
+            var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+
             var parameters = new DynamicParameters();
             parameters.Add("@ShipCode", request.ShipCode);
             parameters.Add("@SearchTerm", request.SearchTerm);
             parameters.Add("@SortColumn", string.IsNullOrWhiteSpace(request.SortColumn) ? "RankName" : request.SortColumn);
             parameters.Add("@SortDirection", request.SortDescending ? "DESC" : "ASC");
-            parameters.Add("@PageNumber", request.PageNumber);
-            parameters.Add("@PageSize", request.PageSize);
+            parameters.Add("@PageNumber", pageNumber);
+            parameters.Add("@PageSize", pageSize);
             parameters.Add("@StatusFilter", request.StatusFilter);
             parameters.Add("@TotalCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
@@ -38,8 +41,8 @@ namespace ShipManagement.API.Services
             {
                 Items = crewMembers,
                 TotalCount = totalCount,
-                PageNumber = request.PageNumber,
-                PageSize = request.PageSize
+                PageNumber = pageNumber,
+                PageSize = pageSize
             };
         }
     }

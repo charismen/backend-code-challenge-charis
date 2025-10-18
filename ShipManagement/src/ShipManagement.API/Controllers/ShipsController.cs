@@ -57,13 +57,18 @@ namespace ShipManagement.API.Controllers
             try
             {
                 if (string.IsNullOrWhiteSpace(ship.Code) || string.IsNullOrWhiteSpace(ship.Name) ||
-                    string.IsNullOrWhiteSpace(ship.FiscalYear) || string.IsNullOrWhiteSpace(ship.Status))
+                    string.IsNullOrWhiteSpace(ship.FiscalYear))
                 {
-                    return BadRequest("Ship code, name, fiscal year, and status are required");
+                    return BadRequest("Ship code, name, and fiscal year are required");
                 }
 
                 var created = await _shipService.CreateShipAsync(ship);
                 return CreatedAtAction(nameof(GetShipByCode), new { code = created.Code }, created);
+            }
+            catch (ConflictException cf)
+            {
+                _logger.LogWarning(cf, "Ship creation failed for code {Code}: {Message}", ship.Code, cf.Message);
+                return Conflict(cf.Message);
             }
             catch (Exception ex)
             {

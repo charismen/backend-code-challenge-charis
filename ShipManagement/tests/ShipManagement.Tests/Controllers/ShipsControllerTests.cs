@@ -24,8 +24,8 @@ public class ShipsControllerTests
         var controller = new ShipsController(service, logger);
         var ships = new List<Ship>
         {
-            new() { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" },
-            new() { Code = "SHIP2", Name = "Ship 2", FiscalYear = "0212", Status = "Inactive" }
+            new() { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = true },
+            new() { Code = "SHIP2", Name = "Ship 2", FiscalYear = "0212", Status = false }
         }.AsEnumerable();
 
         service.GetAllShipsAsync().Returns(Task.FromResult(ships));
@@ -58,7 +58,7 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" };
+        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = true };
 
         service.GetShipByCodeAsync("SHIP1").Returns(Task.FromResult<Ship?>(ship));
 
@@ -104,8 +104,8 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = "SHIP3", Name = "Ship 3", FiscalYear = "0112", Status = "Active" };
-        var created = new Ship { Code = "SHIP3", Name = "Ship 3", FiscalYear = "0112", Status = "Active" };
+        var ship = new Ship { Code = "SHIP3", Name = "Ship 3", FiscalYear = "0112", Status = true };
+        var created = new Ship { Code = "SHIP3", Name = "Ship 3", FiscalYear = "0112", Status = true };
 
         service.CreateShipAsync(ship).Returns(Task.FromResult(created));
 
@@ -123,7 +123,7 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = string.Empty, Name = string.Empty, FiscalYear = string.Empty, Status = string.Empty };
+        var ship = new Ship { Code = string.Empty, Name = string.Empty, FiscalYear = string.Empty, Status = false };
 
         var response = await controller.CreateShip(ship);
 
@@ -137,7 +137,7 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = "SHIP4", Name = "Ship 4", FiscalYear = "0112", Status = "Active" };
+        var ship = new Ship { Code = "SHIP4", Name = "Ship 4", FiscalYear = "0112", Status = true };
 
         service.CreateShipAsync(Arg.Any<Ship>()).ThrowsAsync(new InvalidOperationException("failure"));
 
@@ -148,12 +148,29 @@ public class ShipsControllerTests
     }
 
     [Fact]
+    public async Task CreateShip_ReturnsConflict_WhenServiceThrowsConflict()
+    {
+        var service = Substitute.For<IShipService>();
+        var logger = Substitute.For<ILogger<ShipsController>>();
+        var controller = new ShipsController(service, logger);
+        var ship = new Ship { Code = "SHIP3", Name = "Ship 3", FiscalYear = "0112", Status = true };
+
+        service.CreateShipAsync(Arg.Any<Ship>())
+            .ThrowsAsync(new ConflictException("Ship with code SHIP3 already exists"));
+
+        var response = await controller.CreateShip(ship);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(response.Result);
+        Assert.Equal("Ship with code SHIP3 already exists", conflict.Value);
+    }
+
+    [Fact]
     public async Task UpdateShip_ReturnsNotFound_WhenServiceSignalsMissing()
     {
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" };
+        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = true };
 
         service.UpdateShipAsync(ship).Returns(Task.FromResult<Ship?>(null));
 
@@ -168,7 +185,7 @@ public class ShipsControllerTests
         var service = Substitute.For<IShipService>();
         var logger = Substitute.For<ILogger<ShipsController>>();
         var controller = new ShipsController(service, logger);
-        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = "Active" };
+        var ship = new Ship { Code = "SHIP1", Name = "Ship 1", FiscalYear = "0112", Status = true };
 
         service.UpdateShipAsync(Arg.Any<Ship>())
             .ThrowsAsync(new NotFoundException("Ship with code SHIP1 not found"));

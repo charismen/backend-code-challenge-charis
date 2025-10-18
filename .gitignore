@@ -31,3 +31,7 @@ coverage/
 # Local secrets
 *.usersecrets/
 .env
+
+# Local files
+REQUIREMENT.md
+swagger.json

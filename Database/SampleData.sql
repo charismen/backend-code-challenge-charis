@@ -3,11 +3,11 @@ GO
 
 -- Insert Ship data
 INSERT INTO Ship (Code, Name, FiscalYear, Status) VALUES
-('SHIP01', 'Flying Dutchman', '0112', 'Active'),
-('SHIP02', 'Thousand Sunny', '0403', 'Active'),
-('SHIP03', 'Black Pearl', '0112', 'Active'),
-('SHIP04', 'Nautilus', '0706', 'Active'),
-('SHIP05', 'Queen Anne', '0403', 'Inactive');
+('SHIP01', 'Flying Dutchman', '0112', 1),
+('SHIP02', 'Thousand Sunny', '0403', 1),
+('SHIP03', 'Black Pearl', '0112', 1),
+('SHIP04', 'Nautilus', '0706', 1),
+('SHIP05', 'Queen Anne', '0403', 0);
 GO
 
 -- Insert User data
@@ -305,7 +305,7 @@ CREATE OR ALTER PROCEDURE GenerateFinancialData
 AS
 BEGIN
     DECLARE @shipCodes TABLE (Code NVARCHAR(10), FiscalYear NVARCHAR(4));
-    INSERT INTO @shipCodes SELECT Code, FiscalYear FROM Ship WHERE Status = 'Active';
+    INSERT INTO @shipCodes SELECT Code, FiscalYear FROM Ship WHERE Status = 1;
     
     DECLARE @childAccounts TABLE (AccountNumber NVARCHAR(20));
     INSERT INTO @childAccounts 

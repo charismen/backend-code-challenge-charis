@@ -52,13 +52,12 @@ namespace ShipManagement.API.Services
             }
         }
 
-        public async Task<bool> DeleteUserAsync(int userId)
+        public async Task DeleteUserAsync(int userId)
         {
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                var affectedRows = await connection.ExecuteAsync("EXEC DeleteUser @UserId", new { UserId = userId });
-                return affectedRows > 0;
+                await connection.ExecuteAsync("EXEC DeleteUser @UserId", new { UserId = userId });
             }
             catch (SqlException ex) when (IsUserNotFound(ex))
             {
@@ -71,10 +70,10 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                var affectedRows = await connection.ExecuteAsync(
-                    "EXEC AssignShipToUser @UserId, @ShipCode", 
+                var assignment = await connection.QueryFirstOrDefaultAsync(
+                    "EXEC AssignShipToUser @UserId, @ShipCode",
                     new { UserId = userId, ShipCode = shipCode });
-                return affectedRows > 0;
+                return assignment is not null;
             }
             catch (SqlException ex) when (IsUserNotFound(ex))
             {
@@ -84,6 +83,10 @@ namespace ShipManagement.API.Services
             {
                 throw new NotFoundException($"Ship with code {shipCode} not found");
             }
+            catch (SqlException ex) when (IsAssignmentAlreadyExists(ex))
+            {
+                throw new ConflictException($"Assignment between user {userId} and ship {shipCode} already exists");
+            }
         }
 
         public async Task<bool> RemoveShipFromUserAsync(int userId, string shipCode)
@@ -91,10 +94,10 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                var affectedRows = await connection.ExecuteAsync(
-                    "EXEC RemoveShipFromUser @UserId, @ShipCode", 
+                await connection.ExecuteAsync(
+                    "EXEC RemoveShipFromUser @UserId, @ShipCode",
                     new { UserId = userId, ShipCode = shipCode });
-                return affectedRows > 0;
+                return true;
             }
             catch (SqlException ex) when (IsAssignmentNotFound(ex))
             {
@@ -115,8 +118,14 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                return await connection.QueryAsync<Ship>(
+                var ships = await connection.QueryAsync<Ship>(
                     "EXEC GetShipsByUser @UserId", new { UserId = userId });
+                if (!ships.Any())
+                {
+                    throw new NotFoundException($"User with ID {userId} is not assigned to any ships");
+                }
+
+                return ships;
             }
             catch (SqlException ex) when (IsUserNotFound(ex))
             {
@@ -132,5 +141,8 @@ namespace ShipManagement.API.Services
 
         private static bool IsAssignmentNotFound(SqlException ex) =>
             ex.Message.IndexOf("Assignment not found", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsAssignmentAlreadyExists(SqlException ex) =>
+            ex.Message.IndexOf("Assignment already exists", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

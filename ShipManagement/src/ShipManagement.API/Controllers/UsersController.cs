@@ -31,7 +31,7 @@ namespace ShipManagement.API.Controllers
                 _logger.LogError(ex, "Error retrieving users");
                 return StatusCode(500, "An error occurred while retrieving users");
             }
-        }
+        }   
 
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUserById(int id)
@@ -52,14 +52,20 @@ namespace ShipManagement.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<User>> CreateUser(User user)
+        public async Task<ActionResult<User>> CreateUser(CreateUserRequest request)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(user.Name) || string.IsNullOrWhiteSpace(user.Role))
+                if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Role))
                     return BadRequest("User name and role are required");
 
-                var created = await _userService.CreateUserAsync(user);
+                var newUser = new User
+                {
+                    Name = request.Name.Trim(),
+                    Role = request.Role.Trim()
+                };
+
+                var created = await _userService.CreateUserAsync(newUser);
                 return CreatedAtAction(nameof(GetUserById), new { id = created.UserId }, created);
             }
             catch (Exception ex)
@@ -100,10 +106,7 @@ namespace ShipManagement.API.Controllers
         {
             try
             {
-                var success = await _userService.DeleteUserAsync(id);
-                if (!success)
-                    return NotFound($"User with ID {id} not found");
-
+                await _userService.DeleteUserAsync(id);
                 return NoContent();
             }
             catch (NotFoundException nf)
@@ -133,6 +136,11 @@ namespace ShipManagement.API.Controllers
             {
                 _logger.LogWarning(nf, "Assign ship {ShipCode} to user {UserId} failed: {Message}", shipCode, userId, nf.Message);
                 return NotFound(nf.Message);
+            }
+            catch (ConflictException cf)
+            {
+                _logger.LogWarning(cf, "Assign ship {ShipCode} to user {UserId} failed: {Message}", shipCode, userId, cf.Message);
+                return Conflict(cf.Message);
             }
             catch (Exception ex)
             {

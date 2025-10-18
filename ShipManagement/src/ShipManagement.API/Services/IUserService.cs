@@ -8,7 +8,7 @@ namespace ShipManagement.API.Services
         Task<User?> GetUserByIdAsync(int userId);
         Task<User> CreateUserAsync(User user);
         Task<User?> UpdateUserAsync(User user);
-        Task<bool> DeleteUserAsync(int userId);
+        Task DeleteUserAsync(int userId);
         Task<bool> AssignShipToUserAsync(int userId, string shipCode);
         Task<bool> RemoveShipFromUserAsync(int userId, string shipCode);
         Task<IEnumerable<Ship>> GetShipsByUserAsync(int userId);

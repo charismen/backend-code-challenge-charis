@@ -58,6 +58,20 @@ public class CrewControllerTests
     }
 
     [Fact]
+    public async Task GetCrewList_ReturnsBadRequest_WhenPageSizeInvalid()
+    {
+        var service = Substitute.For<ICrewService>();
+        var logger = Substitute.For<ILogger<CrewController>>();
+        var controller = new CrewController(service, logger);
+        var request = new CrewListRequest { ShipCode = "SHIP01", PageNumber = 1, PageSize = 0 };
+
+        var response = await controller.GetCrewList(request);
+
+        Assert.IsType<BadRequestObjectResult>(response.Result);
+        await service.DidNotReceiveWithAnyArgs().GetCrewListAsync(default!);
+    }
+
+    [Fact]
     public async Task GetCrewList_ReturnsInternalServerError_WhenServiceThrows()
     {
         var service = Substitute.For<ICrewService>();

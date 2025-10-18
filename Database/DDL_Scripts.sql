@@ -15,7 +15,7 @@ BEGIN
         Code NVARCHAR(10) PRIMARY KEY,
         Name NVARCHAR(100) NOT NULL,
         FiscalYear NVARCHAR(4) NOT NULL CHECK (FiscalYear LIKE '[0-1][0-9][0-1][0-9]'), -- Format: MMYY
-        Status NVARCHAR(10) NOT NULL CHECK (Status IN ('Active', 'Inactive'))
+        Status BIT NOT NULL CONSTRAINT DF_Ship_Status DEFAULT 1
     );
 END
 GO

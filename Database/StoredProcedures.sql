@@ -513,7 +513,7 @@ CREATE OR ALTER PROCEDURE CreateShip
     @Code NVARCHAR(10),
     @Name NVARCHAR(100),
     @FiscalYear NVARCHAR(4),
-    @Status NVARCHAR(10)
+    @Status BIT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -552,7 +552,7 @@ CREATE OR ALTER PROCEDURE UpdateShip
     @Code NVARCHAR(10),
     @Name NVARCHAR(100),
     @FiscalYear NVARCHAR(4),
-    @Status NVARCHAR(10)
+    @Status BIT
 AS
 BEGIN
     SET NOCOUNT ON;

@@ -24,6 +24,10 @@ namespace ShipManagement.API.Controllers
             {
                 if (string.IsNullOrWhiteSpace(request.ShipCode))
                     return BadRequest("Ship code is required");
+                if (request.PageNumber <= 0)
+                    return BadRequest("Page number must be greater than zero");
+                if (request.PageSize <= 0)
+                    return BadRequest("Page size must be greater than zero");
 
                 var result = await _crewService.GetCrewListAsync(request);
                 return Ok(result);

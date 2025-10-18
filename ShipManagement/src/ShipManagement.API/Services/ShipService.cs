@@ -31,10 +31,17 @@ namespace ShipManagement.API.Services
 
         public async Task<Ship> CreateShipAsync(Ship ship)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            return await connection.QuerySingleAsync<Ship>(
-                "EXEC CreateShip @Code, @Name, @FiscalYear, @Status", 
-                new { ship.Code, ship.Name, ship.FiscalYear, ship.Status });
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                return await connection.QuerySingleAsync<Ship>(
+                    "EXEC CreateShip @Code, @Name, @FiscalYear, @Status",
+                    new { ship.Code, ship.Name, ship.FiscalYear, ship.Status });
+            }
+            catch (SqlException ex) when (IsShipAlreadyExists(ex))
+            {
+                throw new ConflictException($"Ship with code {ship.Code} already exists");
+            }
         }
 
         public async Task<Ship?> UpdateShipAsync(Ship ship)
@@ -57,8 +64,8 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                var affectedRows = await connection.ExecuteAsync("EXEC DeleteShip @Code", new { Code = code });
-                return affectedRows > 0;
+                await connection.ExecuteAsync("EXEC DeleteShip @Code", new { Code = code });
+                return true;
             }
             catch (SqlException ex) when (IsShipNotFound(ex))
             {
@@ -68,5 +75,8 @@ namespace ShipManagement.API.Services
 
         private static bool IsShipNotFound(SqlException ex) =>
             ex.Message.IndexOf("Ship not found", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsShipAlreadyExists(SqlException ex) =>
+            ex.Message.IndexOf("Ship with this code already exists", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

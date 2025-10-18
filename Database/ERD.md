@@ -7,7 +7,7 @@
    - Primary Key: Code (string)
    - Name (string)
    - FiscalYear (string) - Format: "MMYY" (e.g., "0112", "0403")
-   - Status (string) - "Active" or "Inactive"
+   - Status (bit) - 1 indicates active service, 0 indicates inactive
 
 2. **User**
    - Primary Key: UserId (int)
