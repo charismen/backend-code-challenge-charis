@@ -83,6 +83,7 @@ dotnet test ShipManagement/tests/ShipManagement.Tests/ShipManagement.Tests.cspro
 ```
 
 Tests use xUnit against the controller layer (`ShipManagement.Tests/Controllers`). Each suite mocks dependencies with NSubstitute to verify success, validation, and error paths without requiring HTTP hosting.
+Service-level tests live under `ShipManagement.Tests/Services` and exercise every Dapper-backed service by injecting fake database connections through the `IDapperExecutor` abstraction, ensuring exception handling logic (e.g. “not found”, “duplicate assignment”) stays covered without a real SQL Server.
 
 ## Authentication
 
@@ -106,6 +107,7 @@ Credentials and JWT settings are configurable under the `Auth` and `Jwt` section
 
 - **Dependency Injection** – Services implement interfaces (`IShipService`, `ICrewService`, etc.) and are registered in `Program.cs` for clear separation between controllers and data access.
 - **Database Access** – Uses a custom `SqlConnectionFactory` alongside Dapper for lightweight data mapping while leveraging stored procedures for complex queries.
+- **Data Access Abstraction** – `IDapperExecutor` wraps Dapper calls so business services stay thin and fully testable while continuing to execute stored procedures exclusively.
 - **Environment-specific configuration** – `appsettings.Development.json` configures Kestrel endpoints to avoid HTTPS redirection warnings; `launchSettings.json` aligns with the same URLs to keep tooling consistent.
 - **Developer Experience** – `Makefile` provides a single entry point for restoring, building, testing, running, and provisioning the database; VS Code settings simplify local debugging without modifying source controllers.
 - **Testing Approach** – Controller-focused xUnit tests offering faster feedback while still validating happy-path, validation, and failure branches.
