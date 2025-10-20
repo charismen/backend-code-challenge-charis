@@ -1,5 +1,5 @@
 using System;
-using Dapper;
+using System.Linq;
 using Microsoft.Data.SqlClient;
 using ShipManagement.API.Data;
 using ShipManagement.API.Exceptions;
@@ -10,29 +10,32 @@ namespace ShipManagement.API.Services
     public class UserService : IUserService
     {
         private readonly IDatabaseConnectionFactory _connectionFactory;
+        private readonly IDapperExecutor _dapper;
 
-        public UserService(IDatabaseConnectionFactory connectionFactory)
+        public UserService(IDatabaseConnectionFactory connectionFactory, IDapperExecutor dapper)
         {
             _connectionFactory = connectionFactory;
+            _dapper = dapper;
         }
 
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
             using var connection = _connectionFactory.CreateConnection();
-            return await connection.QueryAsync<User>("EXEC GetUsers");
+            return await _dapper.QueryAsync<User>(connection, "EXEC GetUsers");
         }
 
         public async Task<User?> GetUserByIdAsync(int userId)
         {
             using var connection = _connectionFactory.CreateConnection();
-            return await connection.QueryFirstOrDefaultAsync<User>(
-                "EXEC GetUserById @UserId", new { UserId = userId });
+            return await _dapper.QueryFirstOrDefaultAsync<User>(
+                connection, "EXEC GetUserById @UserId", new { UserId = userId });
         }
 
         public async Task<User> CreateUserAsync(User user)
         {
             using var connection = _connectionFactory.CreateConnection();
-            return await connection.QuerySingleAsync<User>(
+            return await _dapper.QuerySingleAsync<User>(
+                connection,
                 "EXEC CreateUser @Name, @Role",
                 new { user.Name, user.Role });
         }
@@ -42,7 +45,8 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                return await connection.QueryFirstOrDefaultAsync<User>(
+                return await _dapper.QueryFirstOrDefaultAsync<User>(
+                    connection,
                     "EXEC UpdateUser @UserId, @Name, @Role",
                     new { UserId = user.UserId, user.Name, user.Role });
             }
@@ -57,7 +61,7 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                await connection.ExecuteAsync("EXEC DeleteUser @UserId", new { UserId = userId });
+                await _dapper.ExecuteAsync(connection, "EXEC DeleteUser @UserId", new { UserId = userId });
             }
             catch (SqlException ex) when (IsUserNotFound(ex))
             {
@@ -70,7 +74,8 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                var assignment = await connection.QueryFirstOrDefaultAsync(
+                var assignment = await _dapper.QueryFirstOrDefaultAsync<dynamic>(
+                    connection,
                     "EXEC AssignShipToUser @UserId, @ShipCode",
                     new { UserId = userId, ShipCode = shipCode });
                 return assignment is not null;
@@ -94,7 +99,8 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                await connection.ExecuteAsync(
+                await _dapper.ExecuteAsync(
+                    connection,
                     "EXEC RemoveShipFromUser @UserId, @ShipCode",
                     new { UserId = userId, ShipCode = shipCode });
                 return true;
@@ -118,7 +124,8 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                var ships = await connection.QueryAsync<Ship>(
+                var ships = await _dapper.QueryAsync<Ship>(
+                    connection,
                     "EXEC GetShipsByUser @UserId", new { UserId = userId });
                 if (!ships.Any())
                 {

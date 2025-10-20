@@ -82,6 +82,7 @@ builder.Services.AddAuthentication(options =>
 // Register services
 builder.Services.AddSingleton<IDatabaseConnectionFactory>(sp => 
     new SqlConnectionFactory(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddSingleton<IDapperExecutor, DapperExecutor>();
 builder.Services.AddScoped<IShipService, ShipService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICrewService, CrewService>();

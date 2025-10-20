@@ -1,5 +1,4 @@
 using System;
-using Dapper;
 using Microsoft.Data.SqlClient;
 using ShipManagement.API.Data;
 using ShipManagement.API.Exceptions;
@@ -10,10 +9,12 @@ namespace ShipManagement.API.Services
     public class FinancialService : IFinancialService
     {
         private readonly IDatabaseConnectionFactory _connectionFactory;
+        private readonly IDapperExecutor _dapper;
 
-        public FinancialService(IDatabaseConnectionFactory connectionFactory)
+        public FinancialService(IDatabaseConnectionFactory connectionFactory, IDapperExecutor dapper)
         {
             _connectionFactory = connectionFactory;
+            _dapper = dapper;
         }
 
         public async Task<IEnumerable<FinancialReportItem>> GetFinancialReportDetailAsync(FinancialReportRequest request)
@@ -22,7 +23,8 @@ namespace ShipManagement.API.Services
             {
                 using var connection = _connectionFactory.CreateConnection();
                 var accountPeriod = new DateTime(request.Year, request.Month, 1);
-                return await connection.QueryAsync<FinancialReportItem>(
+                return await _dapper.QueryAsync<FinancialReportItem>(
+                    connection,
                     "EXEC GetFinancialReportDetail @ShipCode, @AccountPeriod",
                     new { request.ShipCode, AccountPeriod = accountPeriod });
             }
@@ -38,7 +40,8 @@ namespace ShipManagement.API.Services
             {
                 using var connection = _connectionFactory.CreateConnection();
                 var accountPeriod = new DateTime(request.Year, request.Month, 1);
-                return await connection.QueryAsync<FinancialReportItem>(
+                return await _dapper.QueryAsync<FinancialReportItem>(
+                    connection,
                     "EXEC GetFinancialReportSummary @ShipCode, @AccountPeriod",
                     new { request.ShipCode, AccountPeriod = accountPeriod });
             }

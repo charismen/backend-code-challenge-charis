@@ -1,5 +1,4 @@
 using System;
-using Dapper;
 using Microsoft.Data.SqlClient;
 using ShipManagement.API.Data;
 using ShipManagement.API.Exceptions;
@@ -10,23 +9,25 @@ namespace ShipManagement.API.Services
     public class ShipService : IShipService
     {
         private readonly IDatabaseConnectionFactory _connectionFactory;
+        private readonly IDapperExecutor _dapper;
 
-        public ShipService(IDatabaseConnectionFactory connectionFactory)
+        public ShipService(IDatabaseConnectionFactory connectionFactory, IDapperExecutor dapper)
         {
             _connectionFactory = connectionFactory;
+            _dapper = dapper;
         }
 
         public async Task<IEnumerable<Ship>> GetAllShipsAsync()
         {
             using var connection = _connectionFactory.CreateConnection();
-            return await connection.QueryAsync<Ship>("EXEC GetShips");
+            return await _dapper.QueryAsync<Ship>(connection, "EXEC GetShips");
         }
 
         public async Task<Ship?> GetShipByCodeAsync(string code)
         {
             using var connection = _connectionFactory.CreateConnection();
-            return await connection.QueryFirstOrDefaultAsync<Ship>(
-                "EXEC GetShipByCode @Code", new { Code = code });
+            return await _dapper.QueryFirstOrDefaultAsync<Ship>(
+                connection, "EXEC GetShipByCode @Code", new { Code = code });
         }
 
         public async Task<Ship> CreateShipAsync(Ship ship)
@@ -34,7 +35,8 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                return await connection.QuerySingleAsync<Ship>(
+                return await _dapper.QuerySingleAsync<Ship>(
+                    connection,
                     "EXEC CreateShip @Code, @Name, @FiscalYear, @Status",
                     new { ship.Code, ship.Name, ship.FiscalYear, ship.Status });
             }
@@ -49,7 +51,8 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                return await connection.QueryFirstOrDefaultAsync<Ship>(
+                return await _dapper.QueryFirstOrDefaultAsync<Ship>(
+                    connection,
                     "EXEC UpdateShip @Code, @Name, @FiscalYear, @Status", 
                     new { ship.Code, ship.Name, ship.FiscalYear, ship.Status });
             }
@@ -64,7 +67,7 @@ namespace ShipManagement.API.Services
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                await connection.ExecuteAsync("EXEC DeleteShip @Code", new { Code = code });
+                await _dapper.ExecuteAsync(connection, "EXEC DeleteShip @Code", new { Code = code });
                 return true;
             }
             catch (SqlException ex) when (IsShipNotFound(ex))

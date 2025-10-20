@@ -8,10 +8,12 @@ namespace ShipManagement.API.Services
     public class CrewService : ICrewService
     {
         private readonly IDatabaseConnectionFactory _connectionFactory;
+        private readonly IDapperExecutor _dapper;
 
-        public CrewService(IDatabaseConnectionFactory connectionFactory)
+        public CrewService(IDatabaseConnectionFactory connectionFactory, IDapperExecutor dapper)
         {
             _connectionFactory = connectionFactory;
+            _dapper = dapper;
         }
 
         public async Task<PagedResult<CrewMember>> GetCrewListAsync(CrewListRequest request)
@@ -31,7 +33,8 @@ namespace ShipManagement.API.Services
             parameters.Add("@StatusFilter", request.StatusFilter);
             parameters.Add("@TotalCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-            var crewMembers = await connection.QueryAsync<CrewMember>(
+            var crewMembers = await _dapper.QueryAsync<CrewMember>(
+                connection,
                 "EXEC GetCrewList @ShipCode, @SearchTerm, @SortColumn, @SortDirection, @PageNumber, @PageSize, @StatusFilter, @TotalCount OUTPUT",
                 parameters);
 
