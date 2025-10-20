@@ -21,6 +21,10 @@ Backend API for managing ships, crew, users, and financial records. The solution
 
 ## Quick Start
 
+Choose between the Makefile targets (native tooling) or Docker Compose (containerised).
+
+### Option A: Local toolchain via Make
+
 ```bash
 # Restore packages and build
 make build
@@ -35,12 +39,49 @@ make db-setup
 make run
 ```
 
+### Option B: Docker Compose
+
+```bash
+docker compose up --build
+# or (macOS/Linux with Azure SQL Edge)
+SQL_IMAGE=mcr.microsoft.com/azure-sql-edge docker compose up --build
+```
+
 Once running, the API listens on:
 
 - `https://localhost:5001`
 - `http://localhost:5000` (redirects to Swagger UI)
 
 Swagger is available at `/swagger`. The root path `/` redirects to the documentation without exposing an extra endpoint definition.
+
+## Docker Setup
+
+For a containerised environment spin up SQL Server and the API via Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+This launches two services:
+
+- `shipmanagement-db` – SQL Server 2022 with schema/SP/sample data applied automatically via `docker/init` scripts.
+- `shipmanagement-api` – the Web API published on port `8080` (mapped to container port `8080`).
+
+To stop the environment run:
+
+```bash
+docker compose down
+```
+
+Persistent database files live inside the named volume `sql-data`. Remove it with `docker compose down -v` if you want a clean database on next start.
+
+> **macOS / Linux note:** Microsoft only ships the full SQL Server container for Windows hosts. If you are developing on macOS or Linux, run the API against Azure SQL Edge instead:
+>
+> ```bash
+> SQL_IMAGE=mcr.microsoft.com/azure-sql-edge docker compose up --build
+> ```
+>
+> The compose file picks up the `SQL_IMAGE` override and reuses the same init scripts so stored procedures and seed data stay identical.
 
 ## Database Scripts
 
@@ -121,7 +162,7 @@ For the coding exercise the credential list is intentionally in-memory. In a pro
 - `Makefile` – automates build/test/run/db tasks documented above.
 - `.gitignore` – excludes build outputs, tooling caches, and local env files from version control.
 - `ShipManagement/src/ShipManagement.API/Properties/launchSettings.json` – dotnet CLI profiles (development & integration).
-- No Dockerfile or CI pipeline are provided; integration points are ready for future extension if desired.
+- `ShipManagement/src/ShipManagement.API/Dockerfile` and `docker-compose.yml` – containerise the API alongside SQL Server for local testing or demos.
 
 ## Troubleshooting
 

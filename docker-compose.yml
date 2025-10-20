@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  sqlserver:
+    image: ${SQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    container_name: shipmanagement-db
+    environment:
+      SA_PASSWORD: "${SA_PASSWORD:-StrongPassword@123}"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD:-StrongPassword@123}"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "${MSSQL_PID:-Developer}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+      - ./docker/init:/docker-entrypoint-initdb.d
+
+  api:
+    build:
+      context: .
+      dockerfile: ShipManagement/src/ShipManagement.API/Dockerfile
+    container_name: shipmanagement-api
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ShipManagement;User Id=SA;Password=StrongPassword@123;Encrypt=False;TrustServerCertificate=True;MultipleActiveResultSets=true"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - sqlserver
+
+volumes:
+  sql-data:
