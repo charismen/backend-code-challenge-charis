@@ -102,12 +102,14 @@ Authorization: Bearer <token>
 ```
 
 Credentials and JWT settings are configurable under the `Auth` and `Jwt` sections of `appsettings.json`.
+For the coding exercise the credential list is intentionally in-memory. In a production system you would move credential storage (and password hashing) to a secure database or identity provider.
 
 ## Design Notes
 
 - **Dependency Injection** – Services implement interfaces (`IShipService`, `ICrewService`, etc.) and are registered in `Program.cs` for clear separation between controllers and data access.
 - **Database Access** – Uses a custom `SqlConnectionFactory` alongside Dapper for lightweight data mapping while leveraging stored procedures for complex queries.
 - **Data Access Abstraction** – `IDapperExecutor` wraps Dapper calls so business services stay thin and fully testable while continuing to execute stored procedures exclusively.
+- **CI Pipeline** – `.github/workflows/ci.yml` runs restore/build/test on every push or PR to keep the solution green automatically.
 - **Environment-specific configuration** – `appsettings.Development.json` configures Kestrel endpoints to avoid HTTPS redirection warnings; `launchSettings.json` aligns with the same URLs to keep tooling consistent.
 - **Developer Experience** – `Makefile` provides a single entry point for restoring, building, testing, running, and provisioning the database; VS Code settings simplify local debugging without modifying source controllers.
 - **Testing Approach** – Controller-focused xUnit tests offering faster feedback while still validating happy-path, validation, and failure branches.
